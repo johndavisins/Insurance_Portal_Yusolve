@@ -1,0 +1,7 @@
+flask
+flask-login
+werkzeug
+authlib
+pypdf
+reportlab
+python-dateutil

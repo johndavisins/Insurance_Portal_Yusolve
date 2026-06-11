@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Yusolve — Renewals</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0a1628;--red:#c0392b;--red-b:#e74c3c;--gold:#d4a843;--gold-l:#f0c96e;--white:#fff;--muted:#8899bb;--border:rgba(255,255,255,0.08);--card:rgba(15,32,68,0.75)}
+body{font-family:'Barlow',sans-serif;background:var(--navy);color:var(--white);min-height:100vh}
+.bg{position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 20% 0%,rgba(192,57,43,0.12),transparent 60%),linear-gradient(160deg,#0a1628,#0d1e3a 40%,#0a1628)}
+.gbg{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:60px 60px}
+header{position:relative;z-index:10;padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(10,22,40,0.92)}
+.logo{display:flex;align-items:center;gap:12px}
+.lmark{width:34px;height:34px;background:var(--red);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.lmark svg{width:18px;height:18px;fill:#fff}
+.bname{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:1.5px;color:#fff;text-transform:uppercase;display:block;line-height:1}
+.bsub{font-size:9px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-top:2px;display:block}
+nav{display:flex;align-items:center;gap:2px}
+nav a{color:rgba(255,255,255,0.5);text-decoration:none;font-size:12px;font-weight:500;padding:6px 11px;border-radius:6px;transition:all .15s}
+nav a:hover{color:#fff;background:rgba(255,255,255,0.06)}
+nav a.active{color:#fff;background:rgba(192,57,43,0.22);border:1px solid rgba(192,57,43,0.3)}
+.signout{background:var(--red)!important;color:#fff!important;margin-left:6px;border-radius:6px;padding:6px 14px!important}
+main{position:relative;z-index:1;padding:28px 32px 60px;max-width:1500px;margin:0 auto}
+.flash{padding:10px 16px;border-radius:8px;margin-bottom:16px;font-size:13px;font-weight:500}
+.flash.success{background:rgba(39,174,96,0.15);border:1px solid rgba(39,174,96,0.3);color:#2ecc71}
+.flash.error{background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.3);color:#e74c3c}
+
+/* Countdown banner */
+.countdown{background:rgba(192,57,43,0.12);border:1px solid rgba(192,57,43,0.25);border-radius:10px;padding:12px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.cd-item{display:flex;align-items:center;gap:8px;font-size:13px}
+.cd-num{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;line-height:1}
+.cd-num.red{color:#e74c3c}
+.cd-num.yellow{color:#f0c96e}
+.cd-label{font-size:11px;color:var(--muted);line-height:1.3}
+.cd-sep{width:1px;height:32px;background:rgba(255,255,255,0.1)}
+
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+.ptitle{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;letter-spacing:1px;text-transform:uppercase}
+.hbtns{display:flex;gap:8px}
+.btn{border:none;padding:9px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.4px;display:flex;align-items:center;gap:6px;text-decoration:none;transition:all .15s}
+.btn-add{background:var(--red);color:#fff}
+.btn-add:hover{background:var(--red-b)}
+.btn-csv{background:rgba(39,174,96,0.15);border:1px solid rgba(39,174,96,0.3);color:#2ecc71}
+.btn-csv:hover{background:rgba(39,174,96,0.25)}
+
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:14px 18px;position:relative;overflow:hidden}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.sc.r::before{background:linear-gradient(90deg,#c0392b,#e74c3c)}
+.sc.y::before{background:linear-gradient(90deg,#d4a843,#f0c96e)}
+.sc.g::before{background:linear-gradient(90deg,#27ae60,#2ecc71)}
+.sc.b::before{background:linear-gradient(90deg,#2980b9,#3498db)}
+.snum{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;line-height:1;margin-bottom:3px}
+.snum.cr{color:#e74c3c}.snum.cy{color:#f0c96e}.snum.cg{color:#2ecc71}.snum.cb{color:#3498db}
+.slbl{font-size:10px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted)}
+
+.filters{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.fsearch{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;padding:8px 14px;color:#fff;font-size:13px;width:220px;outline:none}
+.fsearch::placeholder{color:var(--muted)}
+.fsearch:focus{border-color:rgba(192,57,43,0.5)}
+.fsel{background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;padding:8px 12px;color:#fff;font-size:12px;outline:none;cursor:pointer}
+.fsel option{background:#0f2044}
+.fclear{color:var(--muted);font-size:12px;cursor:pointer;text-decoration:underline;background:none;border:none}
+.fclear:hover{color:#fff}
+.row-count{margin-left:auto;font-size:12px;color:var(--muted)}
+
+.tbl-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.tbl{width:100%;border-collapse:collapse}
+.tbl thead{background:rgba(255,255,255,0.04)}
+.tbl th{padding:11px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)}
+.tbl td{padding:11px 14px;font-size:12px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,0.02)}
+.company{font-size:13px;font-weight:500;color:#fff}
+.policy-num{font-size:10px;color:var(--gold-l);margin-top:2px}
+.agent{font-size:10px;color:var(--muted);margin-top:1px}
+
+.bdays{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:6px;display:inline-block;white-space:nowrap}
+.bdays.red{background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.3);color:#e74c3c}
+.bdays.yellow{background:rgba(243,156,18,0.12);border:1px solid rgba(243,156,18,0.25);color:#f0c96e}
+.bdays.green{background:rgba(39,174,96,0.12);border:1px solid rgba(39,174,96,0.25);color:#2ecc71}
+.bstatus{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:6px;display:inline-block}
+.bstatus.Active{background:rgba(39,174,96,0.1);border:1px solid rgba(39,174,96,0.25);color:#2ecc71}
+.bstatus.Expired{background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.25);color:#e74c3c}
+.bstatus.Cancelled{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--muted)}
+
+.actions{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.btn-sm{font-size:11px;font-weight:600;padding:4px 10px;border-radius:5px;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn-edit{background:rgba(41,128,185,0.15);border:1px solid rgba(41,128,185,0.3);color:#3498db}
+.btn-edit:hover{background:rgba(41,128,185,0.25)}
+.btn-email{background:rgba(212,168,67,0.12);border:1px solid rgba(212,168,67,0.3);color:var(--gold-l)}
+.btn-email:hover{background:rgba(212,168,67,0.22)}
+.btn-renew{background:rgba(39,174,96,0.12);border:1px solid rgba(39,174,96,0.25);color:#2ecc71}
+.btn-renew:hover{background:rgba(39,174,96,0.22)}
+.btn-del{background:rgba(192,57,43,0.1);border:1px solid rgba(192,57,43,0.22);color:#e74c3c}
+.btn-del:hover{background:rgba(192,57,43,0.2)}
+
+.empty{padding:40px;text-align:center;color:var(--muted);font-size:13px}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.75);align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#0f2044;border:1px solid rgba(255,255,255,0.12);border-radius:14px;width:560px;max-width:96vw;max-height:92vh;overflow-y:auto;padding:26px}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer}
+.modal-close:hover{color:#fff}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+label{font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+input,select{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:9px 12px;color:#fff;font-size:13px;font-family:'Barlow',sans-serif;outline:none;width:100%;transition:border .15s}
+input:focus,select:focus{border-color:rgba(192,57,43,0.5)}
+select option{background:#0f2044}
+.toggle-row{display:flex;align-items:center;gap:10px;padding:8px 0}
+.toggle{width:36px;height:20px;background:rgba(255,255,255,0.1);border-radius:10px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle.on{background:var(--red)}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left .2s}
+.toggle.on::after{left:18px}
+.modal-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+.btn-cancel{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--muted);padding:9px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-save{background:var(--red);border:none;color:#fff;padding:9px 22px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-save:hover{background:var(--red-b)}
+
+/* Email modal */
+.email-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:12px;line-height:1.7;color:rgba(255,255,255,0.85);white-space:pre-wrap;font-family:'Barlow',sans-serif;max-height:320px;overflow-y:auto;user-select:all}
+.subject-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;color:#fff;margin-bottom:10px;font-weight:500}
+.copy-btn{background:rgba(41,128,185,0.15);border:1px solid rgba(41,128,185,0.3);color:#3498db;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.copy-btn:hover{background:rgba(41,128,185,0.25)}
+.copy-btn.copied{background:rgba(39,174,96,0.15);border-color:rgba(39,174,96,0.3);color:#2ecc71}
+
+footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px solid var(--border);color:var(--muted);font-size:11px}
+@media(max-width:900px){.stats{grid-template-columns:1fr 1fr}.tbl th:nth-child(4),.tbl td:nth-child(4),.tbl th:nth-child(6),.tbl td:nth-child(6){display:none}}
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="gbg"></div>
+
+<header>
+  <div class="logo">
+    <div class="lmark"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zm-.5 1.5 1.96 2.5H17V9.5h2.5zM6 18c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm13.5-1c0 .55-.45 1-1 1s-1-.45-1-1 .45-1 1-1 1 .45 1 1z"/></svg></div>
+    <div><span class="bname">Yusolve</span><span class="bsub">Insurance Operations</span></div>
+  </div>
+  <nav>
+    <a href="/">Dashboard</a>
+    <a href="/renewals" class="active">Renewals</a>
+    
+    <a href="/payments">Payments</a>
+    
+    {% if current_user.is_admin %}<a href="/admin">Admin</a>{% endif %}
+    <a href="/">Dashboard</a>
+    <a href="/renewals" class="active">Renewals</a>
+    <a href="/payments">Payments</a>
+    {% if current_user.is_admin %}<a href="/admin">Admin</a>{% endif %}
+    
+    <div style="width:1px;height:20px;background:rgba(255,255,255,0.08);margin:0 4px"></div>
+    <div style="position:relative" id="pWrap">
+      <div style="display:flex;align-items:center;gap:7px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:6px 12px;cursor:pointer;color:#fff;font-size:12px;font-weight:500" onclick="document.getElementById('pDrop').classList.toggle('open')">
+        <div style="width:22px;height:22px;background:#c0392b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">{{ current_user.first_name[0]|upper }}</div>
+        {{ current_user.first_name }}&nbsp;<span style="font-size:10px;color:#8899bb">&#x25BE;</span>
+      </div>
+      <div id="pDrop" style="display:none;position:absolute;top:calc(100% + 8px);right:0;background:#0f2044;border:1px solid rgba(255,255,255,0.12);border-radius:10px;min-width:170px;overflow:hidden;z-index:50;box-shadow:0 8px 32px rgba(0,0,0,0.4)">
+        <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08)">
+          <div style="font-size:13px;font-weight:600;color:#fff">{{ current_user.full_name }}</div>
+          <div style="font-size:11px;color:#8899bb;margin-top:2px">{{ current_user.email }}</div>
+        </div>
+        <a href="/profile" style="display:block;padding:9px 14px;font-size:12px;color:rgba(255,255,255,0.7);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.04)">&#x1F464; My profile</a>
+        
+  </nav>
+</header>
+
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+
+  <!-- Countdown banner -->
+  {% if stats.urgent > 0 or stats.upcoming > 0 %}
+  <div class="countdown">
+    <span style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">⏰ Renewal alerts</span>
+    <div class="cd-sep"></div>
+    {% if stats.urgent > 0 %}
+    <div class="cd-item">
+      <div>
+        <div class="cd-num red">{{ stats.urgent }}</div>
+        <div class="cd-label">Expiring<br>within 30 days</div>
+      </div>
+    </div>
+    {% endif %}
+    {% if stats.upcoming > 0 %}
+    {% if stats.urgent > 0 %}<div class="cd-sep"></div>{% endif %}
+    <div class="cd-item">
+      <div>
+        <div class="cd-num yellow">{{ stats.upcoming }}</div>
+        <div class="cd-label">Expiring in<br>30–60 days</div>
+      </div>
+    </div>
+    {% endif %}
+    <div style="margin-left:auto;font-size:12px;color:var(--muted)">Take action before policies lapse</div>
+  </div>
+  {% endif %}
+
+  <div class="ph">
+    <h1 class="ptitle">📅 Policy Renewals</h1>
+    <div class="hbtns">
+      <a href="/renewals/export" class="btn btn-csv">⬇ Export CSV</a>
+      <button class="btn btn-add" onclick="openAddModal()">+ Add renewal</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="sc b"><div class="snum cb">{{ stats.total }}</div><div class="slbl">Total policies</div></div>
+    <div class="sc r"><div class="snum cr">{{ stats.urgent }}</div><div class="slbl">Urgent &lt;30 days</div></div>
+    <div class="sc y"><div class="snum cy">{{ stats.upcoming }}</div><div class="slbl">Upcoming 30–60d</div></div>
+    <div class="sc g"><div class="snum cg">{{ stats.ok }}</div><div class="slbl">OK &gt;60 days</div></div>
+  </div>
+
+  <div class="filters">
+    <input class="fsearch" type="text" id="searchInput" placeholder="🔍 Search company, carrier, policy#..." oninput="filterTable()">
+    <select class="fsel" id="filterColor" onchange="filterTable()">
+      <option value="">All urgency</option>
+      <option value="red">🔴 Urgent (&lt;30d)</option>
+      <option value="yellow">🟡 Upcoming (30–60d)</option>
+      <option value="green">🟢 OK (&gt;60d)</option>
+    </select>
+    <select class="fsel" id="filterType" onchange="filterTable()">
+      <option value="">All types</option>
+      {% for pt in policy_types %}<option value="{{ pt }}">{{ pt }}</option>{% endfor %}
+    </select>
+    <select class="fsel" id="filterCarrier" onchange="filterTable()">
+      <option value="">All carriers</option>
+      {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+    </select>
+    <button class="fclear" onclick="clearFilters()">Clear</button>
+    <span class="row-count" id="rowCount"></span>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="tbl" id="mainTable">
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Policy type</th>
+          <th>Carrier</th>
+          <th>Policy #</th>
+          <th>Agent</th>
+          <th>Renewal date</th>
+          <th>Days left</th>
+          <th>Premium</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        {% for r in renewals %}
+        <tr data-color="{{ r.color }}" data-type="{{ r.policy_type }}" data-carrier="{{ r.carrier }}"
+            data-search="{{ r.company|lower }} {{ r.carrier|lower }} {{ r.get('policy_number','')|lower }} {{ r.get('agent_name','')|lower }}">
+          <td>
+            <div class="company">{{ r.company }}</div>
+            {% if r.get('policy_number') %}<div class="policy-num">Policy #{{ r.policy_number }}</div>{% endif %}
+          </td>
+          <td style="color:var(--muted)">{{ r.policy_type }}</td>
+          <td style="color:var(--muted)">{{ r.carrier }}</td>
+          <td style="color:var(--gold-l);font-size:11px">{{ r.get('policy_number','') or '—' }}</td>
+          <td style="color:var(--muted);font-size:11px">{{ r.get('agent_name','') or '—' }}</td>
+          <td style="color:#fff;font-size:12px">{{ r.date_fmt }}</td>
+          <td><span class="bdays {{ r.color }}">{% if r.days < 0 %}Expired{% else %}{{ r.days }}d{% endif %}</span></td>
+          <td style="color:var(--gold-l);font-weight:600">{% if r.premium %}${{ r.premium }}{% else %}—{% endif %}</td>
+          <td><span class="bstatus {{ r.status }}">{{ r.status }}</span></td>
+          <td>
+            <div class="actions">
+              <button class="btn-sm btn-email" onclick="loadEmailTemplate({{ r.id }}, '{{ r.company|e }}')">📧 Email</button>
+              <button class="btn-sm btn-edit" onclick="openEditModal({{ r.id }},'{{ r.company|e }}','{{ r.policy_type|e }}','{{ r.carrier|e }}','{{ r.renewal_date }}','{{ r.premium|e }}','{{ r.get('policy_number','')|e }}','{{ r.get('agent_name','')|e }}','{{ r.status }}',{{ r.auto_renew }},'{{ r.get('notes','')|e }}')">Edit</button>
+              <a href="/renewals/history/{{ r.id }}" class="btn-sm" style="background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.3);color:#9b59b6;text-decoration:none">History</a>
+              {% if r.auto_renew %}
+              <form method="POST" action="/renewals/renew/{{ r.id }}" style="display:inline">
+                <button class="btn-sm btn-renew" type="submit" onclick="return confirm('Push renewal date 1 year forward?')">+1yr</button>
+              </form>
+              {% endif %}
+              <form method="POST" action="/renewals/delete/{{ r.id }}" style="display:inline">
+                <button class="btn-sm btn-del" type="submit" onclick="return confirm('Delete this renewal?')">Del</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="10"><div class="empty">No renewals yet. Click "+ Add renewal" to get started.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<footer>&copy; 2025 Yusolve — Insurance Operations</footer>
+
+<!-- Add Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-title">Add renewal <button class="modal-close" onclick="closeModal('addModal')">✕</button></div>
+    <form method="POST" action="/renewals/add">
+      <div class="form-grid">
+        <div class="form-group full"><label>Company name *</label><input type="text" name="company" placeholder="e.g. A and G Express Group LLC" required></div>
+        <div class="form-group"><label>Policy type *</label>
+          <select name="policy_type" required><option value="">Select...</option>
+          {% for pt in policy_types %}<option value="{{ pt }}">{{ pt }}</option>{% endfor %}</select>
+        </div>
+        <div class="form-group"><label>Carrier *</label>
+          <select name="carrier" required><option value="">Select...</option>
+          {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
+        </div>
+        <div class="form-group"><label>Policy number</label><input type="text" name="policy_number" placeholder="e.g. POL-2024-001234"></div>
+        <div class="form-group"><label>Agent name</label><input type="text" name="agent_name" placeholder="e.g. Mike Johnson"></div>
+        <div class="form-group"><label>Renewal date *</label><input type="date" name="renewal_date" required></div>
+        <div class="form-group"><label>Annual premium ($)</label><input type="text" name="premium" placeholder="e.g. 12,500"></div>
+        <div class="form-group full"><label>Notes</label><textarea name="notes" rows="3" placeholder="Any notes about this policy..." style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:9px 12px;color:#fff;font-size:13px;font-family:Barlow,sans-serif;outline:none;width:100%;resize:vertical"></textarea></div>
+        <div class="form-group full">
+          <div class="toggle-row">
+            <div class="toggle on" id="addToggle" onclick="toggleAR('addToggle','addAR')"></div>
+            <span style="font-size:13px;color:rgba(255,255,255,0.8)">Auto-renew — push date +1 year</span>
+            <input type="hidden" name="auto_renew" id="addAR" value="1">
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
+        <button type="submit" class="btn-save">Save renewal</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">Edit renewal <button class="modal-close" onclick="closeModal('editModal')">✕</button></div>
+    <form method="POST" id="editForm">
+      <div class="form-grid">
+        <div class="form-group full"><label>Company name *</label><input type="text" name="company" id="eCompany" required></div>
+        <div class="form-group"><label>Policy type *</label>
+          <select name="policy_type" id="ePolicyType" required>
+          {% for pt in policy_types %}<option value="{{ pt }}">{{ pt }}</option>{% endfor %}</select>
+        </div>
+        <div class="form-group"><label>Carrier *</label>
+          <select name="carrier" id="eCarrier" required>
+          {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
+        </div>
+        <div class="form-group"><label>Policy number</label><input type="text" name="policy_number" id="ePolicyNum" placeholder="e.g. POL-2024-001234"></div>
+        <div class="form-group"><label>Agent name</label><input type="text" name="agent_name" id="eAgent" placeholder="e.g. Mike Johnson"></div>
+        <div class="form-group"><label>Renewal date *</label><input type="date" name="renewal_date" id="eDate" required></div>
+        <div class="form-group"><label>Annual premium ($)</label><input type="text" name="premium" id="ePremium"></div>
+        <div class="form-group"><label>Status</label>
+          <select name="status" id="eStatus">
+            <option value="Active">Active</option>
+            <option value="Expired">Expired</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Notes</label><textarea name="notes" id="eNotes" rows="3" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:9px 12px;color:#fff;font-size:13px;font-family:Barlow,sans-serif;outline:none;width:100%;resize:vertical"></textarea></div>
+        <div class="form-group full">
+          <div class="toggle-row">
+            <div class="toggle" id="editToggle" onclick="toggleAR('editToggle','editAR')"></div>
+            <span style="font-size:13px;color:rgba(255,255,255,0.8)">Auto-renew</span>
+            <input type="hidden" name="auto_renew" id="editAR" value="0">
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="closeModal('editModal')">Cancel</button>
+        <button type="submit" class="btn-save">Save changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Email Modal -->
+<div class="modal-overlay" id="emailModal">
+  <div class="modal" style="width:600px">
+    <div class="modal-title">📧 Carrier renewal notice <button class="modal-close" onclick="closeModal('emailModal')">✕</button></div>
+    <div style="margin-bottom:8px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Subject</div>
+      <div class="subject-box" id="emailSubject">Loading...</div>
+    </div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Email body</div>
+      <div class="email-box" id="emailBody">Loading...</div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="copy-btn" id="copySubjectBtn" onclick="copyText('emailSubject','copySubjectBtn','Subject copied!')">Copy subject</button>
+      <button class="copy-btn" id="copyBodyBtn" onclick="copyText('emailBody','copyBodyBtn','Body copied!')">Copy body</button>
+      <button class="btn-cancel" onclick="closeModal('emailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Modal helpers
+function openAddModal(){ document.getElementById('addModal').classList.add('open') }
+function closeModal(id){ document.getElementById(id).classList.remove('open') }
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}))
+
+function openEditModal(id,company,ptype,carrier,date,premium,polnum,agent,status,autoRenew,notes){
+  document.getElementById('editForm').action='/renewals/edit/'+id;
+  document.getElementById('eCompany').value=company;
+  document.getElementById('ePolicyType').value=ptype;
+  document.getElementById('eCarrier').value=carrier;
+  document.getElementById('ePolicyNum').value=polnum;
+  document.getElementById('eAgent').value=agent;
+  document.getElementById('eDate').value=date;
+  document.getElementById('ePremium').value=premium;
+  document.getElementById('eStatus').value=status;
+  document.getElementById('eNotes').value=notes||'';
+  const ar=autoRenew==1||autoRenew==true;
+  document.getElementById('editAR').value=ar?'1':'0';
+  const tog=document.getElementById('editToggle');
+  ar?tog.classList.add('on'):tog.classList.remove('on');
+  document.getElementById('editModal').classList.add('open');
+}
+
+function toggleAR(togId,inputId){
+  const tog=document.getElementById(togId);
+  const inp=document.getElementById(inputId);
+  tog.classList.toggle('on');
+  inp.value=tog.classList.contains('on')?'1':'0';
+}
+
+// Email template
+async function loadEmailTemplate(id, company){
+  document.getElementById('emailSubject').textContent='Loading...';
+  document.getElementById('emailBody').textContent='Loading...';
+  document.getElementById('emailModal').classList.add('open');
+  try{
+    const res = await fetch('/renewals/email-template/'+id);
+    const data = await res.json();
+    document.getElementById('emailSubject').textContent = data.subject;
+    document.getElementById('emailBody').textContent = data.body;
+  }catch(e){
+    document.getElementById('emailBody').textContent='Error loading template.';
+  }
+}
+
+function copyText(elId, btnId, msg){
+  const text = document.getElementById(elId).textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.getElementById(btnId);
+    const orig = btn.textContent;
+    btn.textContent = msg;
+    btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent=orig; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Filter
+function filterTable(){
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const color  = document.getElementById('filterColor').value;
+  const type   = document.getElementById('filterType').value;
+  const carrier= document.getElementById('filterCarrier').value;
+  const rows   = document.querySelectorAll('#tableBody tr[data-color]');
+  let visible  = 0;
+  rows.forEach(row=>{
+    const ms = !search || row.dataset.search.includes(search);
+    const mc = !color  || row.dataset.color   === color;
+    const mt = !type   || row.dataset.type    === type;
+    const mk = !carrier|| row.dataset.carrier === carrier;
+    const show = ms&&mc&&mt&&mk;
+    row.style.display = show?'':'none';
+    if(show) visible++;
+  });
+  document.getElementById('rowCount').textContent = visible+' record'+(visible!==1?'s':'');
+}
+
+function clearFilters(){
+  ['searchInput','filterColor','filterType','filterCarrier'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.value='';
+  });
+  filterTable();
+}
+
+if(new URLSearchParams(location.search).get('new')==='1') openAddModal();
+filterTable();
+</script>
+</body>
+</html>
