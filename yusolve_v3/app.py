@@ -210,7 +210,7 @@ def index():
     today = date.today()
 
     # Renewals
-    all_r = get_all_renewals()
+    all_r = get_all_renewals(user_id=current_user.id, is_admin=current_user.is_admin)
     for r in all_r:
         try:
             rd = dt.strptime(r["renewal_date"], "%Y-%m-%d").date()
@@ -227,7 +227,7 @@ def index():
     all_r_sorted = sorted(all_r, key=lambda x: x["days"])
 
     # Payments
-    all_p = get_all_payments()
+    all_p = get_all_payments(user_id=current_user.id, is_admin=current_user.is_admin)
     for p in all_p:
         try:
             dd = dt.strptime(p["due_date"], "%Y-%m-%d").date()
@@ -406,7 +406,7 @@ def dashboard():
     today = date.today()
 
     # --- Renewals: real DB ---
-    all_r = get_all_renewals()
+    all_r = get_all_renewals(user_id=current_user.id, is_admin=current_user.is_admin)
     for r in all_r:
         try:
             rd = dt.strptime(r["renewal_date"], "%Y-%m-%d").date()
@@ -437,7 +437,7 @@ def dashboard():
 @login_required
 def renewals():
     from datetime import datetime
-    all_r = get_all_renewals()
+    all_r = get_all_renewals(user_id=current_user.id, is_admin=current_user.is_admin)
     today = date.today()
     for r in all_r:
         try:
@@ -569,7 +569,7 @@ if __name__ == "__main__":
 def renewals_export():
     import csv, io
     from datetime import datetime as dt
-    all_r = get_all_renewals()
+    all_r = get_all_renewals(user_id=current_user.id, is_admin=current_user.is_admin)
     today = date.today()
     output = io.StringIO()
     writer = csv.writer(output)
@@ -656,28 +656,56 @@ def init_payments_db():
     con = _sq.connect(_DB)
     con.execute("""
         CREATE TABLE IF NOT EXISTS payments (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            company        TEXT NOT NULL,
+            policy_number  TEXT NOT NULL DEFAULT '',
+            carrier        TEXT NOT NULL DEFAULT '',
+            amount         REAL NOT NULL DEFAULT 0,
+            due_date       TEXT NOT NULL,
+            paid_date      TEXT NOT NULL DEFAULT '',
+            status         TEXT NOT NULL DEFAULT 'Pending',
+            payment_method TEXT NOT NULL DEFAULT '',
+            bank_name      TEXT NOT NULL DEFAULT '',
+            reference_num  TEXT NOT NULL DEFAULT '',
+            note           TEXT NOT NULL DEFAULT '',
+            created_by     INTEGER,
+            created_at     TEXT NOT NULL
+        )
+    """)
+    # Add new columns if not exist
+    for col in [
+        "payment_method TEXT NOT NULL DEFAULT ''",
+        "bank_name TEXT NOT NULL DEFAULT ''",
+        "reference_num TEXT NOT NULL DEFAULT ''",
+    ]:
+        try: con.execute(f"ALTER TABLE payments ADD COLUMN {col}")
+        except: pass
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS payment_history (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            company      TEXT NOT NULL,
-            policy_number TEXT NOT NULL DEFAULT '',
-            carrier      TEXT NOT NULL DEFAULT '',
-            amount       REAL NOT NULL DEFAULT 0,
-            due_date     TEXT NOT NULL,
-            paid_date    TEXT NOT NULL DEFAULT '',
-            status       TEXT NOT NULL DEFAULT 'Pending',
+            payment_id   INTEGER NOT NULL,
+            action       TEXT NOT NULL,
+            old_status   TEXT NOT NULL DEFAULT '',
+            new_status   TEXT NOT NULL DEFAULT '',
             note         TEXT NOT NULL DEFAULT '',
-            created_by   INTEGER,
-            created_at   TEXT NOT NULL
+            done_by      INTEGER,
+            done_by_name TEXT NOT NULL DEFAULT '',
+            done_at      TEXT NOT NULL,
+            FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
         )
     """)
     con.commit(); con.close()
 
-def _pay_keys(): return ["id","company","policy_number","carrier","amount","due_date","paid_date","status","note","created_by","created_at"]
+def _pay_keys(): return ["id","company","policy_number","carrier","amount","due_date","paid_date","status","payment_method","bank_name","reference_num","note","created_by","created_at"]
 
-def get_all_payments():
+def get_all_payments(user_id=None, is_admin=False):
     import sqlite3 as _sq
     from auth import DB_PATH as _DB
     con = _sq.connect(_DB)
-    rows = con.execute("SELECT * FROM payments ORDER BY due_date ASC").fetchall()
+    if is_admin or user_id is None:
+        rows = con.execute("SELECT * FROM payments ORDER BY due_date ASC").fetchall()
+    else:
+        rows = con.execute("SELECT * FROM payments WHERE created_by=? ORDER BY due_date ASC", (user_id,)).fetchall()
     con.close()
     return [dict(zip(_pay_keys(), r)) for r in rows]
 
@@ -689,24 +717,43 @@ def get_payment_by_id(pid):
     con.close()
     return dict(zip(_pay_keys(), row)) if row else None
 
-def create_payment(company, policy_number, carrier, amount, due_date, note, created_by):
+def create_payment(company, policy_number, carrier, amount, due_date, note, created_by, payment_method='', bank_name='', reference_num=''):
     import sqlite3 as _sq
     from auth import DB_PATH as _DB
     from datetime import datetime as _dt
     now = _dt.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     con = _sq.connect(_DB)
     con.execute(
-        "INSERT INTO payments (company,policy_number,carrier,amount,due_date,status,note,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
-        (company, policy_number, carrier, float(amount or 0), due_date, "Pending", note, created_by, now)
+        "INSERT INTO payments (company,policy_number,carrier,amount,due_date,status,payment_method,bank_name,reference_num,note,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        (company, policy_number, carrier, float(amount or 0), due_date, "Pending", payment_method, bank_name, reference_num, note, created_by, now)
     )
     con.commit(); con.close()
 
-def mark_payment_paid(pid, paid_date):
+def mark_payment_paid(pid, paid_date, done_by=None, done_by_name=''):
+    import sqlite3 as _sq
+    from auth import DB_PATH as _DB
+    from datetime import datetime as _dt
+    now = _dt.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    con = _sq.connect(_DB)
+    row = con.execute("SELECT status FROM payments WHERE id=?", (pid,)).fetchone()
+    old_status = row[0] if row else ''
+    con.execute("UPDATE payments SET status='Paid',paid_date=? WHERE id=?", (paid_date, pid))
+    con.execute(
+        "INSERT INTO payment_history (payment_id,action,old_status,new_status,done_by,done_by_name,done_at) VALUES (?,?,?,?,?,?,?)",
+        (pid, 'marked_paid', old_status, 'Paid', done_by, done_by_name, now)
+    )
+    con.commit(); con.close()
+
+def get_payment_history(pid):
     import sqlite3 as _sq
     from auth import DB_PATH as _DB
     con = _sq.connect(_DB)
-    con.execute("UPDATE payments SET status='Paid',paid_date=? WHERE id=?", (paid_date, pid))
-    con.commit(); con.close()
+    rows = con.execute(
+        "SELECT * FROM payment_history WHERE payment_id=? ORDER BY done_at DESC", (pid,)
+    ).fetchall()
+    con.close()
+    keys = ["id","payment_id","action","old_status","new_status","note","done_by","done_by_name","done_at"]
+    return [dict(zip(keys, r)) for r in rows]
 
 def delete_payment(pid):
     import sqlite3 as _sq
@@ -714,14 +761,23 @@ def delete_payment(pid):
     con = _sq.connect(_DB)
     con.execute("DELETE FROM payments WHERE id=?", (pid,)); con.commit(); con.close()
 
-def update_payment(pid, company, policy_number, carrier, amount, due_date, status, note):
+def update_payment(pid, company, policy_number, carrier, amount, due_date, status, note, payment_method='', bank_name='', reference_num='', done_by=None, done_by_name=''):
     import sqlite3 as _sq
     from auth import DB_PATH as _DB
+    from datetime import datetime as _dt
+    now = _dt.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     con = _sq.connect(_DB)
+    row = con.execute("SELECT status FROM payments WHERE id=?", (pid,)).fetchone()
+    old_status = row[0] if row else ''
     con.execute(
-        "UPDATE payments SET company=?,policy_number=?,carrier=?,amount=?,due_date=?,status=?,note=? WHERE id=?",
-        (company, policy_number, carrier, float(amount or 0), due_date, status, note, pid)
+        "UPDATE payments SET company=?,policy_number=?,carrier=?,amount=?,due_date=?,status=?,payment_method=?,bank_name=?,reference_num=?,note=? WHERE id=?",
+        (company, policy_number, carrier, float(amount or 0), due_date, status, payment_method, bank_name, reference_num, note, pid)
     )
+    if old_status != status:
+        con.execute(
+            "INSERT INTO payment_history (payment_id,action,old_status,new_status,note,done_by,done_by_name,done_at) VALUES (?,?,?,?,?,?,?,?)",
+            (pid, 'status_changed', old_status, status, f'Updated by {done_by_name}', done_by, done_by_name, now)
+        )
     con.commit(); con.close()
 
 init_payments_db()
@@ -731,7 +787,7 @@ init_payments_db()
 def payments():
     from datetime import datetime as dt
     today = date.today()
-    all_p = get_all_payments()
+    all_p = get_all_payments(user_id=current_user.id, is_admin=current_user.is_admin)
     for p in all_p:
         try:
             dd = dt.strptime(p["due_date"], "%Y-%m-%d").date()
@@ -767,18 +823,21 @@ def payments():
 @app.route("/payments/add", methods=["POST"])
 @login_required
 def payments_add():
-    company       = request.form.get("company","").strip()
-    policy_number = request.form.get("policy_number","").strip()
-    carrier       = request.form.get("carrier","").strip()
-    amount        = request.form.get("amount","0").replace(",","").strip()
-    due_date      = request.form.get("due_date","").strip()
-    note          = request.form.get("note","").strip()
+    company        = request.form.get("company","").strip()
+    policy_number  = request.form.get("policy_number","").strip()
+    carrier        = request.form.get("carrier","").strip()
+    amount         = request.form.get("amount","0").replace(",","").strip()
+    due_date       = request.form.get("due_date","").strip()
+    payment_method = request.form.get("payment_method","").strip()
+    bank_name      = request.form.get("bank_name","").strip()
+    reference_num  = request.form.get("reference_num","").strip()
+    note           = request.form.get("note","").strip()
     if not all([company, due_date]):
         flash("Company and due date are required.", "error")
         return redirect(url_for("payments"))
     try: float(amount)
     except: amount = "0"
-    create_payment(company, policy_number, carrier, amount, due_date, note, current_user.id)
+    create_payment(company, policy_number, carrier, amount, due_date, note, current_user.id, payment_method, bank_name, reference_num)
     flash(f"Payment record added for {company}.", "success")
     return redirect(url_for("payments"))
 
@@ -788,23 +847,26 @@ def payments_mark_paid(pid):
     paid_date = request.form.get("paid_date", date.today().strftime("%Y-%m-%d"))
     p = get_payment_by_id(pid)
     if p:
-        mark_payment_paid(pid, paid_date)
+        mark_payment_paid(pid, paid_date, done_by=current_user.id, done_by_name=current_user.full_name)
         flash(f"Payment for {p['company']} marked as paid.", "success")
     return redirect(url_for("payments"))
 
 @app.route("/payments/edit/<int:pid>", methods=["POST"])
 @login_required
 def payments_edit(pid):
-    company       = request.form.get("company","").strip()
-    policy_number = request.form.get("policy_number","").strip()
-    carrier       = request.form.get("carrier","").strip()
-    amount        = request.form.get("amount","0").replace(",","").strip()
-    due_date      = request.form.get("due_date","").strip()
-    status        = request.form.get("status","Pending").strip()
-    note          = request.form.get("note","").strip()
+    company        = request.form.get("company","").strip()
+    policy_number  = request.form.get("policy_number","").strip()
+    carrier        = request.form.get("carrier","").strip()
+    amount         = request.form.get("amount","0").replace(",","").strip()
+    due_date       = request.form.get("due_date","").strip()
+    status         = request.form.get("status","Pending").strip()
+    payment_method = request.form.get("payment_method","").strip()
+    bank_name      = request.form.get("bank_name","").strip()
+    reference_num  = request.form.get("reference_num","").strip()
+    note           = request.form.get("note","").strip()
     try: float(amount)
     except: amount = "0"
-    update_payment(pid, company, policy_number, carrier, amount, due_date, status, note)
+    update_payment(pid, company, policy_number, carrier, amount, due_date, status, note, payment_method, bank_name, reference_num, done_by=current_user.id, done_by_name=current_user.full_name)
     flash("Payment updated.", "success")
     return redirect(url_for("payments"))
 
@@ -822,7 +884,7 @@ def payments_delete(pid):
 def payments_export():
     import csv, io
     from datetime import datetime as dt
-    all_p = get_all_payments()
+    all_p = get_all_payments(user_id=current_user.id, is_admin=current_user.is_admin)
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["Company","Policy #","Carrier","Amount","Due Date","Paid Date","Status","Note"])
@@ -930,3 +992,35 @@ def payments_invoice(pid):
 @login_required
 def mvr():
     return redirect(url_for("index"))
+
+@app.route("/payments/history/<int:pid>")
+@login_required
+def payment_history_view(pid):
+    from datetime import datetime as dt
+    p = get_payment_by_id(pid)
+    if not p:
+        flash("Payment not found.", "error")
+        return redirect(url_for("payments"))
+    history = get_payment_history(pid)
+    try:
+        dd = dt.strptime(p["due_date"], "%Y-%m-%d").date()
+        p["due_fmt"] = dd.strftime("%m/%d/%Y")
+        p["days_left"] = (dd - date.today()).days
+    except:
+        p["due_fmt"] = p["due_date"]
+        p["days_left"] = 0
+    if p["paid_date"]:
+        try: p["paid_fmt"] = dt.strptime(p["paid_date"], "%Y-%m-%d").strftime("%m/%d/%Y")
+        except: p["paid_fmt"] = p["paid_date"]
+    else:
+        p["paid_fmt"] = ""
+    return render_template("payment_history.html", payment=p, history=history)
+
+
+@app.route("/guest")
+def guest():
+    return render_template("guest.html")
+
+@app.route("/guide")
+def guide():
+    return render_template("guide.html")
