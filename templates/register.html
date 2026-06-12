@@ -84,9 +84,15 @@ main{position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-
 .auth-footer{text-align:center;margin-top:22px;font-size:14px;color:var(--text-muted)}
 .auth-footer a{color:var(--gold);text-decoration:none;font-weight:500}
 .auth-footer a:hover{text-decoration:underline}
+
+.lang-switch{display:flex;gap:2px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;padding:2px;position:fixed;top:16px;right:16px;z-index:50}
+.lang-btn{background:none;border:none;color:var(--text-muted);font-size:11px;font-weight:700;padding:6px 12px;border-radius:5px;cursor:pointer;transition:all .15s;letter-spacing:.5px}
+.lang-btn.active{background:var(--red);color:#fff}
+.lang-btn:not(.active):hover{color:#fff}
 </style>
 </head>
 <body>
+<div class="lang-switch"><button class="lang-btn" data-lang="en" onclick="applyLang('en')">EN</button><button class="lang-btn" data-lang="uz" onclick="applyLang('uz')">UZ</button></div>
 <div class="bg-layer"></div>
 <div class="bg-grid"></div>
 
@@ -104,8 +110,8 @@ main{position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-
 
 <main>
   <div class="auth-card">
-    <h1 class="auth-title">Create Account</h1>
-    <p class="auth-sub">Join the Yusolve operations platform</p>
+    <h1 class="auth-title" data-i18n="create_account">Create Account</h1>
+    <p class="auth-sub" data-i18n="register_subtitle">Join the Yusolve operations platform</p>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for category, message in messages %}
@@ -116,27 +122,27 @@ main{position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-
     <form method="POST" action="/register">
       <div class="form-row">
         <div class="form-group">
-          <label>First Name</label>
+          <label data-i18n="first_name">First Name</label>
           <input type="text" name="first_name" placeholder="John" required/>
         </div>
         <div class="form-group">
-          <label>Last Name</label>
+          <label data-i18n="last_name">Last Name</label>
           <input type="text" name="last_name" placeholder="Doe" required/>
         </div>
       </div>
       <div class="form-group">
-        <label>Email Address</label>
+        <label data-i18n="email_address">Email Address</label>
         <input type="email" name="email" placeholder="you@example.com" required autocomplete="email"/>
       </div>
       <div class="form-group">
-        <label>Password</label>
+        <label data-i18n="password">Password</label>
         <input type="password" name="password" placeholder="Min. 8 characters" required minlength="8"/>
       </div>
       <div class="form-group">
-        <label>Confirm Password</label>
+        <label data-i18n="confirm_password">Confirm Password</label>
         <input type="password" name="confirm_password" placeholder="Repeat password" required minlength="8"/>
       </div>
-      <button type="submit" class="btn-primary">Create Account</button>
+      <button type="submit" class="btn-primary" data-i18n="register_btn">Create Account</button>
     </form>
 
     <div class="divider"><span>or register with</span></div>
@@ -151,8 +157,9 @@ main{position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-
       Continue with Google
     </a>
 
-    <p class="auth-footer">Already have an account? <a href="/login">Sign in</a></p>
+    <p class="auth-footer"><span data-i18n="have_account">Already have an account?</span> <a href="/login" data-i18n="sign_in">Sign in</a></p>
   </div>
 </main>
+<script src="/static/i18n.js"></script>
 </body>
 </html>

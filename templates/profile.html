@@ -147,6 +147,11 @@ tr:hover td{background:rgba(255,255,255,0.02)}
   .stats-row{flex-wrap:wrap}
   .page-header{flex-direction:column;align-items:flex-start;gap:12px}
 }
+
+.lang-switch{display:flex;gap:2px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:2px;margin-right:4px}
+.lang-btn{background:none;border:none;color:#8899bb;font-size:11px;font-weight:700;padding:5px 10px;border-radius:5px;cursor:pointer;transition:all .15s;letter-spacing:.5px}
+.lang-btn.active{background:#c0392b;color:#fff}
+.lang-btn:not(.active):hover{color:#fff}
 </style>
 </head>
 <body>
@@ -164,12 +169,12 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     </div>
   </a>
   <nav class="header-nav">
-    <a href="{{ url_for('index') }}" class="nav-link">Dashboard</a>
+    <a href="{{ url_for('index') }}" class="nav-link" data-i18n="nav_dashboard">Dashboard</a>
     {% if current_user.is_admin %}
-    <a href="{{ url_for('admin_panel') }}" class="nav-link">Admin</a>
+    <a href="{{ url_for('admin_panel') }}" class="nav-link" data-i18n="nav_admin">Admin</a>
     {% endif %}
-    <a href="{{ url_for('profile') }}" class="nav-link active">Profile</a>
-    <a href="{{ url_for('logout') }}" class="nav-btn">Sign Out</a>
+    <a href="{{ url_for('profile') }}" class="nav-link active" data-i18n="nav_profile">Profile</a>
+    <div class="lang-switch"><button class="lang-btn" data-lang="en" onclick="applyLang('en')">EN</button><button class="lang-btn" data-lang="uz" onclick="applyLang('uz')">UZ</button></div><a href="{{ url_for('logout') }}" class="nav-btn" data-i18n="nav_signout">Sign Out</a>
   </nav>
 </header>
 
@@ -359,5 +364,6 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 
   </div><!-- /profile-grid -->
 </main>
+<script src="/static/i18n.js"></script>
 </body>
 </html>

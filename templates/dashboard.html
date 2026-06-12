@@ -124,6 +124,11 @@ footer{position:relative;z-index:1;text-align:center;padding:16px;border-top:1px
   .qa{grid-template-columns:1fr}
   .snum{font-size:26px}
 }
+
+.lang-switch{display:flex;gap:2px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;padding:2px}
+.lang-btn{background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;padding:5px 10px;border-radius:5px;cursor:pointer;transition:all .15s;letter-spacing:.5px}
+.lang-btn.active{background:var(--red);color:#fff}
+.lang-btn:not(.active):hover{color:#fff}
 </style>
 </head>
 <body>
@@ -135,10 +140,14 @@ footer{position:relative;z-index:1;text-align:center;padding:16px;border-top:1px
     <div><span class="bname">Yusolve</span><span class="bsub">Insurance Operations</span></div>
   </div>
   <nav class="desktop-nav" style="display:flex;align-items:center;gap:2px">
-    <a href="/" class="nav-link active">Dashboard</a>
-    <a href="/renewals" class="nav-link">Renewals</a>
-    <a href="/payments" class="nav-link">Payments</a>
-    {% if current_user.is_admin %}<a href="/admin" class="nav-link">Admin</a>{% endif %}
+    <a href="/" class="nav-link active" data-i18n="nav_dashboard">Dashboard</a>
+    <a href="/renewals" class="nav-link" data-i18n="nav_renewals">Renewals</a>
+    <a href="/payments" class="nav-link" data-i18n="nav_payments">Payments</a>
+    {% if current_user.is_admin %}<a href="/admin" class="nav-link" data-i18n="nav_admin">Admin</a>{% endif %}
+    <div class="lang-switch">
+      <button class="lang-btn" data-lang="en" onclick="applyLang('en')">EN</button>
+      <button class="lang-btn" data-lang="uz" onclick="applyLang('uz')">UZ</button>
+    </div>
     <div class="nav-sep"></div>
     <div class="profile-wrap">
       <div class="profile-btn" onclick="toggleProfile(event)">
@@ -151,9 +160,9 @@ footer{position:relative;z-index:1;text-align:center;padding:16px;border-top:1px
           <div class="pd-name">{{ current_user.full_name }}</div>
           <div class="pd-email">{{ current_user.email }}</div>
         </div>
-        <a href="/profile" class="pd-item">👤 My profile</a>
-        {% if current_user.is_admin %}<a href="/admin" class="pd-item">⚙️ Admin panel</a>{% endif %}
-        <a href="/logout" class="pd-item danger">🚪 Sign out</a>
+        <a href="/profile" class="pd-item">👤 <span data-i18n="nav_profile">My profile</span></a>
+        {% if current_user.is_admin %}<a href="/admin" class="pd-item">⚙️ <span data-i18n="nav_admin">Admin panel</span></a>{% endif %}
+        <a href="/logout" class="pd-item danger">🚪 <span data-i18n="nav_signout">Sign out</span></a>
       </div>
     </div>
   </nav>
@@ -172,6 +181,10 @@ footer{position:relative;z-index:1;text-align:center;padding:16px;border-top:1px
   {% if current_user.is_admin %}<a href="/admin" class="nav-link">⚙️ Admin</a>{% endif %}
   <a href="/profile" class="nav-link">👤 Profile</a>
   <a href="/logout" class="nav-link" style="color:#e74c3c">🚪 Sign out</a>
+<div style="display:flex;gap:6px;padding:8px 14px;margin-top:4px;border-top:1px solid var(--border)">
+    <button class="lang-btn" data-lang="en" onclick="applyLang('en')" style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px">EN</button>
+    <button class="lang-btn" data-lang="uz" onclick="applyLang('uz')" style="flex:1;text-align:center;padding:8px;border:1px solid var(--border);border-radius:6px">UZ</button>
+  </div>
 </div>
 
 <main>
@@ -184,18 +197,18 @@ footer{position:relative;z-index:1;text-align:center;padding:16px;border-top:1px
   <div class="stats-top">
     <a href="/renewals" class="sc r" style="text-decoration:none;color:inherit">
       <div class="snum cr">{{ stats.renewals_urgent }}</div>
-      <div class="slbl">Urgent renewals</div>
-      <div class="ssub">Expiring &lt;30 days</div>
+      <div class="slbl" data-i18n="stat_urgent_renewals">Urgent renewals</div>
+      <div class="ssub" data-i18n="stat_urgent_sub">Expiring &lt;30 days</div>
     </a>
     <a href="/renewals" class="sc y" style="text-decoration:none;color:inherit">
       <div class="snum cy">{{ stats.renewals_upcoming }}</div>
-      <div class="slbl">Upcoming renewals</div>
-      <div class="ssub">Expiring 30–60 days</div>
+      <div class="slbl" data-i18n="stat_upcoming_renewals">Upcoming renewals</div>
+      <div class="ssub" data-i18n="stat_upcoming_sub">Expiring 30–60 days</div>
     </a>
     <a href="/renewals" class="sc b" style="text-decoration:none;color:inherit">
       <div class="snum cb">{{ stats.renewals_total }}</div>
-      <div class="slbl">Total policies</div>
-      <div class="ssub">All tracked renewals</div>
+      <div class="slbl" data-i18n="stat_total_policies">Total policies</div>
+      <div class="ssub" data-i18n="stat_total_sub">All tracked renewals</div>
     </a>
   </div>
 
@@ -203,18 +216,18 @@ footer{position:relative;z-index:1;text-align:center;padding:16px;border-top:1px
   <div class="stats-bot">
     <a href="/payments" class="sc r" style="text-decoration:none;color:inherit">
       <div class="snum cr">{{ stats.payments_overdue }}</div>
-      <div class="slbl">Overdue payments</div>
-      <div class="ssub">Past due date</div>
+      <div class="slbl" data-i18n="stat_overdue_payments">Overdue payments</div>
+      <div class="ssub" data-i18n="stat_overdue_sub">Past due date</div>
     </a>
     <a href="/payments" class="sc y" style="text-decoration:none;color:inherit">
       <div class="snum cy">{{ stats.payments_due_soon }}</div>
-      <div class="slbl">Due within 7 days</div>
-      <div class="ssub">Act soon</div>
+      <div class="slbl" data-i18n="stat_due_soon">Due within 7 days</div>
+      <div class="ssub" data-i18n="stat_due_soon_sub">Act soon</div>
     </a>
     <a href="/payments" class="sc p" style="text-decoration:none;color:inherit">
       <div class="snum cp">${{ "{:,.0f}".format(stats.payments_outstanding) }}</div>
-      <div class="slbl">Outstanding</div>
-      <div class="ssub">Total unpaid amount</div>
+      <div class="slbl" data-i18n="stat_outstanding">Outstanding</div>
+      <div class="ssub" data-i18n="stat_outstanding_sub">Total unpaid amount</div>
     </a>
   </div>
 
@@ -222,17 +235,17 @@ footer{position:relative;z-index:1;text-align:center;padding:16px;border-top:1px
   <div class="g2" style="margin-bottom:14px">
     <div class="panel">
       <div class="phead">
-        <span class="ptit">📅 Upcoming renewals</span>
+        <span class="ptit">📅 <span data-i18n="panel_upcoming_renewals">Upcoming renewals</span></span>
         <div style="display:flex;align-items:center;gap:8px">
           {% if stats.renewals_urgent > 0 %}<span class="badge b-r">{{ stats.renewals_urgent }} urgent</span>{% endif %}
-          <a href="/renewals" class="plink">View all →</a>
+          <a href="/renewals" class="plink"><span data-i18n="view_all">View all</span> →</a>
         </div>
       </div>
       {% if no_renewals %}
       <div class="empty">
         <div style="font-size:20px;margin-bottom:8px">📭</div>
-        <div style="margin-bottom:10px">No renewals added yet</div>
-        <a href="/renewals?new=1" style="background:var(--red);color:#fff;text-decoration:none;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600">+ Add first renewal</a>
+        <div style="margin-bottom:10px" data-i18n="no_renewals">No renewals added yet</div>
+        <a href="/renewals?new=1" style="background:var(--red);color:#fff;text-decoration:none;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600"><span data-i18n="add_first_renewal">+ Add first renewal</span></a>
       </div>
       {% else %}
       {% for r in renewals %}
@@ -249,14 +262,15 @@ footer{position:relative;z-index:1;text-align:center;padding:16px;border-top:1px
     </div>
 
     <div class="panel">
-      <div class="phead"><span class="ptit">⚡ Quick actions</span></div>
+      <div class="phead"><span class="ptit">⚡ <span data-i18n="panel_quick_actions">Quick actions</span></span></div>
       <div class="qa">
-        <a href="/renewals?new=1" class="qbtn"><div class="qicon qi-r">📅</div><div><div class="qtxt">Add renewal</div><div class="qsub">Track policy date</div></div></a>
-        <a href="/payments?new=1" class="qbtn"><div class="qicon qi-gr">💰</div><div><div class="qtxt">Log payment</div><div class="qsub">Record premium</div></div></a>
-        <a href="/exp-form" class="qbtn"><div class="qicon qi-b">📄</div><div><div class="qtxt">Exp Form PDF</div><div class="qsub">Driver exp form</div></div></a>
-        <a href="/certificate" class="qbtn"><div class="qicon qi-g">🎓</div><div><div class="qtxt">Safety cert PDF</div><div class="qsub">Training certificate</div></div></a>
-        <a href="/renewals/export" class="qbtn"><div class="qicon qi-gr">⬇</div><div><div class="qtxt">Export renewals</div><div class="qsub">Download CSV</div></div></a>
-        <a href="/payments/export" class="qbtn"><div class="qicon qi-p">⬇</div><div><div class="qtxt">Export payments</div><div class="qsub">Download CSV</div></div></a>
+        <a href="/renewals?new=1" class="qbtn"><div class="qicon qi-r">📅</div><div><div class="qtxt" data-i18n="qa_add_renewal">Add renewal</div><div class="qsub" data-i18n="qa_add_renewal_sub">Track policy date</div></div></a>
+        <a href="/payments?new=1" class="qbtn"><div class="qicon qi-gr">💰</div><div><div class="qtxt" data-i18n="qa_log_payment">Log payment</div><div class="qsub" data-i18n="qa_log_payment_sub">Record premium</div></div></a>
+        <a href="/exp-form" class="qbtn"><div class="qicon qi-b">📄</div><div><div class="qtxt" data-i18n="qa_exp_form">Exp Form PDF</div><div class="qsub" data-i18n="qa_exp_form_sub">Driver exp form</div></div></a>
+        <a href="/certificate" class="qbtn"><div class="qicon qi-g">🎓</div><div><div class="qtxt" data-i18n="qa_cert">Safety cert PDF</div><div class="qsub" data-i18n="qa_cert_sub">Training certificate</div></div></a>
+        <a href="/lease-termination" class="qbtn"><div class="qicon qi-p">📄</div><div><div class="qtxt" data-i18n="qa_lease">Lease Termination</div><div class="qsub" data-i18n="qa_lease_sub">Generate agreement PDF</div></div></a>
+        <a href="/renewals/export" class="qbtn"><div class="qicon qi-gr">⬇</div><div><div class="qtxt" data-i18n="qa_export_renewals">Export renewals</div><div class="qsub" data-i18n="qa_export_renewals_sub">Download CSV</div></div></a>
+        <a href="/payments/export" class="qbtn"><div class="qicon qi-p">⬇</div><div><div class="qtxt" data-i18n="qa_export_payments">Export payments</div><div class="qsub" data-i18n="qa_export_payments_sub">Download CSV</div></div></a>
       </div>
     </div>
   </div>
@@ -265,18 +279,18 @@ footer{position:relative;z-index:1;text-align:center;padding:16px;border-top:1px
   <div class="g2b">
     <div class="panel">
       <div class="phead">
-        <span class="ptit">💰 Pending payments</span>
+        <span class="ptit">💰 <span data-i18n="panel_pending_payments">Pending payments</span></span>
         <div style="display:flex;align-items:center;gap:8px">
           {% if stats.payments_overdue > 0 %}<span class="badge b-r">{{ stats.payments_overdue }} overdue</span>{% endif %}
           {% if stats.payments_due_soon > 0 %}<span class="badge b-y">{{ stats.payments_due_soon }} due soon</span>{% endif %}
-          <a href="/payments" class="plink">View all →</a>
+          <a href="/payments" class="plink"><span data-i18n="view_all">View all</span> →</a>
         </div>
       </div>
       {% if no_payments %}
       <div class="empty">
         <div style="font-size:20px;margin-bottom:8px">📭</div>
-        <div style="margin-bottom:10px">No payments logged yet</div>
-        <a href="/payments?new=1" style="background:var(--red);color:#fff;text-decoration:none;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600">+ Add payment</a>
+        <div style="margin-bottom:10px" data-i18n="no_payments">No payments logged yet</div>
+        <a href="/payments?new=1" style="background:var(--red);color:#fff;text-decoration:none;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:600"><span data-i18n="add_payment">+ Add payment</span></a>
       </div>
       {% else %}
       {% for p in recent_payments %}
@@ -291,29 +305,29 @@ footer{position:relative;z-index:1;text-align:center;padding:16px;border-top:1px
         </span>
       </div>
       {% else %}
-      <div class="empty">All payments are up to date ✓</div>
+      <div class="empty" data-i18n="all_paid_up">All payments are up to date ✓</div>
       {% endfor %}
       {% endif %}
     </div>
 
     <!-- Today's summary -->
     <div class="panel">
-      <div class="phead"><span class="ptit">📊 Today's summary</span></div>
+      <div class="phead"><span class="ptit">📊 <span data-i18n="panel_today_summary">Today's summary</span></span></div>
       <div style="padding:16px;display:flex;flex-direction:column;gap:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
-          <span style="font-size:12px;color:var(--muted)">Policies expiring this month</span>
+          <span style="font-size:12px;color:var(--muted)" data-i18n="summary_expiring_month">Policies expiring this month</span>
           <span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#e74c3c">{{ stats.renewals_urgent }}</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
-          <span style="font-size:12px;color:var(--muted)">Overdue payments</span>
+          <span style="font-size:12px;color:var(--muted)" data-i18n="summary_overdue">Overdue payments</span>
           <span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#e74c3c">{{ stats.payments_overdue }}</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
-          <span style="font-size:12px;color:var(--muted)">Total outstanding</span>
+          <span style="font-size:12px;color:var(--muted)" data-i18n="summary_outstanding">Total outstanding</span>
           <span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#f0c96e">${{ "{:,.0f}".format(stats.payments_outstanding) }}</span>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.06)">
-          <span style="font-size:12px;color:var(--muted)">Total policies tracked</span>
+          <span style="font-size:12px;color:var(--muted)" data-i18n="summary_total_policies">Total policies tracked</span>
           <span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#3498db">{{ stats.renewals_total }}</span>
         </div>
       </div>
@@ -337,5 +351,6 @@ function toggleMobileNav(){
   document.getElementById('mobileNav').classList.toggle('open');
 }
 </script>
+<script src="/static/i18n.js"></script>
 </body>
 </html>

@@ -76,6 +76,11 @@ main{position:relative;z-index:1;padding:28px 32px 60px;max-width:1400px;margin:
 footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px solid var(--border);color:var(--muted);font-size:11px}
 @media(max-width:768px){header,main,.guest-banner{padding-left:16px;padding-right:16px}.stats{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}.feat-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){.feat-grid{grid-template-columns:1fr}}
+
+.lang-switch{display:flex;gap:2px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;padding:2px}
+.lang-btn{background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;padding:5px 10px;border-radius:5px;cursor:pointer;transition:all .15s;letter-spacing:.5px}
+.lang-btn.active{background:var(--red);color:#fff}
+.lang-btn:not(.active):hover{color:#fff}
 </style>
 </head>
 <body>
@@ -87,24 +92,25 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
     <div><span class="bname">Yusolve</span><span class="bsub">Insurance Operations</span></div>
   </div>
   <div class="hbtns">
-    <span class="guest-badge">👁 Guest mode</span>
-    <a href="/guide" class="btn btn-out">📖 Guide</a>
-    <a href="/register" class="btn btn-out">Register</a>
-    <a href="/login" class="btn btn-red">Sign in</a>
+    <div class="lang-switch"><button class="lang-btn" data-lang="en" onclick="applyLang('en')">EN</button><button class="lang-btn" data-lang="uz" onclick="applyLang('uz')">UZ</button></div>
+    <span class="guest-badge" data-i18n="guest_mode">👁 Guest mode</span>
+    <a href="/guide" class="btn btn-out">📖 <span data-i18n="nav_guide">Guide</span></a>
+    <a href="/register" class="btn btn-out" data-i18n="nav_register">Register</a>
+    <a href="/login" class="btn btn-red" data-i18n="nav_signin">Sign in</a>
   </div>
 </header>
 
 <div class="guest-banner">
-  <div class="gb-text"><strong>👁 Guest view</strong> — Siz faqat ko'rish rejida ekansiz. Ma'lumot qo'shish, tahrirlash yoki PDF yaratish uchun kirish kerak.</div>
+  <div class="gb-text" data-i18n="guest_banner">👁 Guest view — Siz faqat ko'rish rejida ekansiz. Ma'lumot qo'shish, tahrirlash yoki PDF yaratish uchun kirish kerak.</div>
   <div class="gb-actions">
-    <a href="/register" class="btn btn-red" style="font-size:11px;padding:6px 14px">✦ Register</a>
-    <a href="/login" class="btn btn-out" style="font-size:11px;padding:6px 14px">Sign in</a>
+    <a href="/register" class="btn btn-red" style="font-size:11px;padding:6px 14px" data-i18n="register">✦ Register</a>
+    <a href="/login" class="btn btn-out" style="font-size:11px;padding:6px 14px" data-i18n="nav_signin">Sign in</a>
   </div>
 </div>
 
 <main>
   <div class="ph">
-    <h1 class="ptitle">Dashboard Preview 👁</h1>
+    <h1 class="ptitle"><span data-i18n="dashboard_preview">Dashboard Preview</span> 👁</h1>
     <span style="font-size:11px;color:var(--muted)" id="dt"></span>
   </div>
 
@@ -121,9 +127,9 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
       <div class="phead"><span class="ptit">📅 Upcoming renewals</span></div>
       <div class="locked-overlay">
         <div class="locked-icon">🔒</div>
-        <div class="locked-text">Login required</div>
-        <div class="locked-sub">Sign in to view and manage your policy renewals</div>
-        <a href="/login" class="btn-unlock">Sign in to view</a>
+        <div class="locked-text" data-i18n="login_required">Login required</div>
+        <div class="locked-sub" data-i18n="sign_in_to_view">Sign in to view and manage your policy renewals</div>
+        <a href="/login" class="btn-unlock" data-i18n="sign_in_to_view">Sign in to view</a>
       </div>
       <!-- Fake rows for visual -->
       <div style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.04);filter:blur(4px);pointer-events:none;user-select:none">
@@ -144,9 +150,9 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
       <div class="phead"><span class="ptit">⚡ Quick actions</span></div>
       <div class="locked-overlay">
         <div class="locked-icon">🔒</div>
-        <div class="locked-text">Login required</div>
-        <div class="locked-sub">Access PDF tools, renewals and payments after signing in</div>
-        <a href="/login" class="btn-unlock">Sign in</a>
+        <div class="locked-text" data-i18n="login_required">Login required</div>
+        <div class="locked-sub" data-i18n="access_after_signin">Access PDF tools, renewals and payments after signing in</div>
+        <a href="/login" class="btn-unlock" data-i18n="nav_signin">Sign in</a>
       </div>
       <div style="padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:6px;filter:blur(4px);pointer-events:none;user-select:none">
         {% for i in range(6) %}
@@ -158,48 +164,48 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
 
   <!-- Features showcase -->
   <div style="margin-top:8px">
-    <div class="features-title">Ro'yxatdan o'tgach nimalarga ega bo'lasiz</div>
+    <div class="features-title" data-i18n="features_after_register">Ro'yxatdan o'tgach nimalarga ega bo'lasiz</div>
     <div class="feat-grid">
       <div class="feat-card active-feat">
         <div class="icon">📅</div>
-        <div class="title">Policy Renewals</div>
-        <div class="desc">100+ mijoz uchun policy muddatlarini kuzating. 🔴🟡🟢 rang tizimi, email template, CSV export, renewal history.</div>
+        <div class="title" data-i18n="feat_renewals_title">Policy Renewals</div>
+        <div class="desc" data-i18n="feat_renewals_desc">100+ mijoz uchun policy muddatlarini kuzating. 🔴🟡🟢 rang tizimi, email template, CSV export, renewal history.</div>
       </div>
       <div class="feat-card active-feat">
         <div class="icon">💰</div>
-        <div class="title">Payment Tracking</div>
-        <div class="desc">Premium to'lovlarni kuzating. ACH, Card, Check, Zelle — har bir to'lov uchun invoice PDF va audit log.</div>
+        <div class="title" data-i18n="feat_payments_title">Payment Tracking</div>
+        <div class="desc" data-i18n="feat_payments_desc">Premium to'lovlarni kuzating. ACH, Card, Check, Zelle — har bir to'lov uchun invoice PDF va audit log.</div>
       </div>
       <div class="feat-card active-feat">
         <div class="icon">📄</div>
-        <div class="title">PDF Generator</div>
-        <div class="desc">Haydovchi tajriba formasi (Exp Form) va Safety Training Certificate — avtomatik to'ldirilgan PDF 1 klikda.</div>
+        <div class="title" data-i18n="feat_pdf_title">PDF Generator</div>
+        <div class="desc" data-i18n="feat_pdf_desc">Haydovchi tajriba formasi (Exp Form) va Safety Training Certificate — avtomatik to'ldirilgan PDF 1 klikda.</div>
       </div>
       <div class="feat-card">
         <div class="icon">📧</div>
-        <div class="title">Carrier Email</div>
-        <div class="desc">Renewal notice emailini 1 klik bilan tayyor holda oling — carrier, policy ma'lumotlari avtomatik kiritiladi.</div>
+        <div class="title" data-i18n="feat_email_title">Carrier Email</div>
+        <div class="desc" data-i18n="feat_email_desc">Renewal notice emailini 1 klik bilan tayyor holda oling — carrier, policy ma'lumotlari avtomatik kiritiladi.</div>
       </div>
       <div class="feat-card">
         <div class="icon">🔒</div>
-        <div class="title">Shaxsiy ma'lumotlar</div>
-        <div class="desc">Sizning renewallaringiz va to'lovlaringiz faqat sizga ko'rinadi. Boshqa xodimlar ko'ra olmaydi.</div>
+        <div class="title" data-i18n="feat_privacy_title">Shaxsiy ma'lumotlar</div>
+        <div class="desc" data-i18n="feat_privacy_desc">Sizning renewallaringiz va to'lovlaringiz faqat sizga ko'rinadi. Boshqa xodimlar ko'ra olmaydi.</div>
       </div>
       <div class="feat-card">
         <div class="icon">📊</div>
-        <div class="title">Dashboard</div>
-        <div class="desc">Har ertalab ochib bir ko'rishda: urgent renewallar, overdue to'lovlar, umumiy outstanding summa.</div>
+        <div class="title" data-i18n="feat_dashboard_title">Dashboard</div>
+        <div class="desc" data-i18n="feat_dashboard_desc">Har ertalab ochib bir ko'rishda: urgent renewallar, overdue to'lovlar, umumiy outstanding summa.</div>
       </div>
     </div>
   </div>
 
   <div class="cta-bottom">
-    <h3>Hoziroq boshlang</h3>
-    <p>Bepul ro'yxatdan o'ting — 30 soniyada tayyor</p>
+    <h3 data-i18n="cta_get_started">Hoziroq boshlang</h3>
+    <p data-i18n="cta_register_sub">Bepul ro'yxatdan o'ting — 30 soniyada tayyor</p>
     <div class="cta-btns">
-      <a href="/register" class="btn-lg" style="background:var(--red);color:#fff">✦ Ro'yxatdan o'tish</a>
-      <a href="/login" class="btn-lg" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:rgba(255,255,255,0.8)">Sign in</a>
-      <a href="/guide" class="btn-lg" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted)">📖 User guide</a>
+      <a href="/register" class="btn-lg" style="background:var(--red);color:#fff" data-i18n="register">✦ Ro'yxatdan o'tish</a>
+      <a href="/login" class="btn-lg" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:rgba(255,255,255,0.8)" data-i18n="nav_signin">Sign in</a>
+      <a href="/guide" class="btn-lg" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted)">📖 <span data-i18n="user_guide_link">User guide</span></a>
     </div>
   </div>
 </main>
@@ -209,5 +215,6 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
 const d=new Date();
 document.getElementById('dt').textContent=d.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 </script>
+<script src="/static/i18n.js"></script>
 </body>
 </html>

@@ -63,6 +63,11 @@ main{position:relative;z-index:1;padding:28px 32px 60px;max-width:1000px;margin:
 .empty{padding:40px;text-align:center;color:var(--muted);font-size:13px;background:var(--card);border:1px solid var(--border);border-radius:12px}
 
 footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px solid var(--border);color:var(--muted);font-size:11px}
+
+.lang-switch{display:flex;gap:2px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;padding:2px}
+.lang-btn{background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;padding:5px 10px;border-radius:5px;cursor:pointer;transition:all .15s;letter-spacing:.5px}
+.lang-btn.active{background:var(--red);color:#fff}
+.lang-btn:not(.active):hover{color:#fff}
 </style>
 </head>
 <body>
@@ -96,7 +101,7 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
           <div style="font-size:13px;font-weight:600;color:#fff">{{ current_user.full_name }}</div>
           <div style="font-size:11px;color:#8899bb;margin-top:2px">{{ current_user.email }}</div>
         </div>
-        <a href="/profile" style="display:block;padding:9px 14px;font-size:12px;color:rgba(255,255,255,0.7);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.04)">&#x1F464; My profile</a>
+        <a href="/profile" style="display:block;padding:9px 14px;font-size:12px;color:rgba(255,255,255,0.7);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.04)">&#x1F464; <span data-i18n="nav_profile">My profile</span></a>
         
   </nav>
 </header>
@@ -169,5 +174,6 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
 </main>
 
 <footer>&copy; 2025 Yusolve — Insurance Operations</footer>
+<script src="/static/i18n.js"></script>
 </body>
 </html>

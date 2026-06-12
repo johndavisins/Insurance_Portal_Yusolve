@@ -5,3 +5,5 @@ authlib
 pypdf
 reportlab
 python-dateutil
+Pillow
+numpy

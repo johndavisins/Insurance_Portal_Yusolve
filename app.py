@@ -1,4 +1,5 @@
 import os, random
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 from datetime import date, timedelta
 from io import BytesIO
 from dateutil.relativedelta import relativedelta
@@ -97,9 +98,7 @@ def login_google():
 def google_callback():
     try:
         token    = google.authorize_access_token()
-        print("TOKEN:", token)
         userinfo = token.get("userinfo") or google.userinfo()
-        print("USERINFO:", userinfo)
     except Exception as e:
         import traceback; traceback.print_exc()
         flash(f"Google login failed: {e}", "error"); return redirect(url_for("login"))
@@ -109,7 +108,6 @@ def google_callback():
         email      = userinfo.get("email","").lower()
         parts      = userinfo.get("name","").split(" ",1)
         first_name = parts[0]; last_name = parts[1] if len(parts)>1 else ""
-        print(f"google_id={google_id} email={email} name={first_name} {last_name}")
 
         data = get_user_by_google_id(google_id)
         if not data:
@@ -124,7 +122,6 @@ def google_callback():
             elif not data:
                 data = create_user(first_name, last_name, email, auth_provider="google", google_id=google_id)
 
-        print("USER DATA:", data)
         if not data:
             flash("Could not create account.", "error"); return redirect(url_for("login"))
         login_user(User(data), remember=True)
@@ -188,8 +185,54 @@ def profile_clear_history():
 @login_required
 @admin_required
 def admin_panel():
-    users = [User(u) for u in get_all_users()]
-    return render_template("admin.html", users=users)
+    from datetime import datetime as dt
+    users_raw = get_all_users()
+    today = date.today()
+
+    users = []
+    for u in users_raw:
+        user_obj = User(u)
+        uid = u["id"]
+
+        # Get renewals for this user
+        user_renewals = get_all_renewals(user_id=uid, is_admin=False)
+        urgent = sum(1 for r in user_renewals if (lambda d: (dt.strptime(d, "%Y-%m-%d").date() - today).days <= 30 if d else False)(r.get("renewal_date","")))
+
+        # Get payments for this user
+        user_payments = get_all_payments(user_id=uid, is_admin=False)
+        overdue = 0
+        outstanding = 0
+        for p in user_payments:
+            if p["status"] != "Paid":
+                outstanding += p["amount"]
+                try:
+                    dd = dt.strptime(p["due_date"], "%Y-%m-%d").date()
+                    if (dd - today).days < 0:
+                        overdue += 1
+                except: pass
+
+        users.append({
+            "user": user_obj,
+            "id": uid,
+            "renewals_count": len(user_renewals),
+            "renewals_urgent": urgent,
+            "payments_count": len(user_payments),
+            "payments_overdue": overdue,
+            "outstanding": outstanding,
+        })
+
+    # Global stats
+    all_renewals = get_all_renewals(is_admin=True)
+    all_payments = get_all_payments(is_admin=True)
+    global_stats = {
+        "total_renewals": len(all_renewals),
+        "total_payments": len(all_payments),
+        "total_outstanding": sum(p["amount"] for p in all_payments if p["status"] != "Paid"),
+        "total_overdue": sum(1 for p in all_payments if p["status"] == "Overdue"),
+    }
+
+    return render_template("admin.html", users=[User(u) for u in users_raw],
+                            user_stats=users, global_stats=global_stats)
 
 @app.route("/admin/make-admin/<int:uid>", methods=["POST"])
 @login_required
@@ -1029,6 +1072,308 @@ def payment_history_view(pid):
     else:
         p["paid_fmt"] = ""
     return render_template("payment_history.html", payment=p, history=history)
+
+# ── Admin: User Detail & Password Reset ──────────────────────────────────────
+
+@app.route("/admin/user/<int:uid>")
+@login_required
+@admin_required
+def admin_user_detail(uid):
+    from datetime import datetime as dt
+    target = get_user_by_id(uid)
+    if not target:
+        flash("User not found.", "error")
+        return redirect(url_for("admin_panel"))
+    target_user = User(target)
+    today = date.today()
+
+    # Renewals for this user
+    renewals = get_all_renewals(user_id=uid, is_admin=False)
+    for r in renewals:
+        try:
+            rd = dt.strptime(r["renewal_date"], "%Y-%m-%d").date()
+            r["days"] = (rd - today).days
+            r["date_fmt"] = rd.strftime("%m/%d/%Y")
+        except:
+            r["days"] = 999
+            r["date_fmt"] = r["renewal_date"]
+        if r["days"] <= 30:   r["color"] = "red"
+        elif r["days"] <= 60: r["color"] = "yellow"
+        else:                  r["color"] = "green"
+    renewals = sorted(renewals, key=lambda x: x["days"])
+
+    # Payments for this user
+    payments = get_all_payments(user_id=uid, is_admin=False)
+    for p in payments:
+        try:
+            dd = dt.strptime(p["due_date"], "%Y-%m-%d").date()
+            p["due_fmt"] = dd.strftime("%m/%d/%Y")
+            p["days_left"] = (dd - today).days
+        except:
+            p["due_fmt"] = p["due_date"]
+            p["days_left"] = 0
+        if p["status"] == "Paid":
+            p["color"] = "green"
+        elif p["days_left"] < 0:
+            p["color"] = "red"
+        elif p["days_left"] <= 7:
+            p["color"] = "yellow"
+        else:
+            p["color"] = "blue"
+        if p["paid_date"]:
+            try: p["paid_fmt"] = dt.strptime(p["paid_date"], "%Y-%m-%d").strftime("%m/%d/%Y")
+            except: p["paid_fmt"] = p["paid_date"]
+        else:
+            p["paid_fmt"] = ""
+
+    # Download history
+    downloads = get_user_downloads(uid)
+
+    stats = {
+        "renewals_total": len(renewals),
+        "renewals_urgent": sum(1 for r in renewals if r["days"] <= 30),
+        "payments_total": len(payments),
+        "payments_overdue": sum(1 for p in payments if p["color"]=="red" and p["status"]!="Paid"),
+        "outstanding": sum(p["amount"] for p in payments if p["status"] != "Paid"),
+        "downloads_total": len(downloads),
+    }
+
+    return render_template("admin_user_detail.html",
+        target=target_user, renewals=renewals, payments=payments,
+        downloads=downloads, stats=stats)
+
+@app.route("/admin/reset-password/<int:uid>", methods=["POST"])
+@login_required
+@admin_required
+def admin_reset_password(uid):
+    target = get_user_by_id(uid)
+    if not target:
+        flash("User not found.", "error")
+        return redirect(url_for("admin_panel"))
+    if target["auth_provider"] == "google":
+        flash("This user signs in with Google — no password to reset.", "error")
+        return redirect(url_for("admin_user_detail", uid=uid))
+
+    new_password = request.form.get("new_password", "").strip()
+    if len(new_password) < 8:
+        flash("Password must be at least 8 characters.", "error")
+        return redirect(url_for("admin_user_detail", uid=uid))
+
+    update_user_password(uid, new_password)
+    flash(f"Password reset for {target['first_name']} {target['last_name']}. New password: {new_password}", "success")
+    return redirect(url_for("admin_user_detail", uid=uid))
+
+@app.route("/admin/generate-password/<int:uid>", methods=["POST"])
+@login_required
+@admin_required
+def admin_generate_password(uid):
+    import secrets, string
+    target = get_user_by_id(uid)
+    if not target:
+        flash("User not found.", "error")
+        return redirect(url_for("admin_panel"))
+    if target["auth_provider"] == "google":
+        flash("This user signs in with Google — no password to reset.", "error")
+        return redirect(url_for("admin_user_detail", uid=uid))
+
+    chars = string.ascii_letters + string.digits
+    new_password = ''.join(secrets.choice(chars) for _ in range(12))
+    update_user_password(uid, new_password)
+    flash(f"New password generated for {target['first_name']} {target['last_name']}: {new_password}", "success")
+    return redirect(url_for("admin_user_detail", uid=uid))
+
+# ── Lease Termination Agreement ─────────────────────────────────────────────
+
+LEASE_TEMPLATE_PATH = os.path.join(BASE_DIR, "lease_template.pdf")
+LESSEE_SIG_FOLDER = os.path.join(BASE_DIR, "uploads", "lessee_signatures")
+LESSOR_SIG_FOLDER = os.path.join(BASE_DIR, "uploads", "lessor_signatures")
+os.makedirs(LESSEE_SIG_FOLDER, exist_ok=True)
+os.makedirs(LESSOR_SIG_FOLDER, exist_ok=True)
+
+LEASE_ALLOWED_EXT = {'png', 'jpg', 'jpeg'}
+
+def _lease_allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in LEASE_ALLOWED_EXT
+
+def _lease_random_signature(folder):
+    import random as _random
+    files = [f for f in os.listdir(folder) if _lease_allowed_file(f)]
+    if not files:
+        return None
+    return os.path.join(folder, _random.choice(files))
+
+def _lease_remove_background(img):
+    """Remove white/light background, keep only dark ink strokes. Returns RGBA."""
+    from PIL import Image
+    import numpy as np
+    img = img.convert("RGBA")
+    data = np.array(img, dtype=np.float32)
+    r, g, b, a = data[:,:,0], data[:,:,1], data[:,:,2], data[:,:,3]
+    lightness = (r + g + b) / 3.0
+    darkness = 255.0 - lightness
+    threshold_low = 40
+    threshold_high = 140
+    alpha = np.clip((darkness - threshold_low) / (threshold_high - threshold_low), 0, 1)
+    alpha = alpha * 255.0
+    alpha = np.minimum(alpha, a)
+    new_data = np.zeros_like(data)
+    new_data[:,:,3] = alpha
+    return Image.fromarray(new_data.astype(np.uint8), 'RGBA')
+
+def _lease_pdf_y(top, H=792):
+    return H - top
+
+def _lease_create_overlay_pdf(data, lessee_sig_path, lessor_sig_path):
+    from PIL import Image
+    from reportlab.lib.utils import ImageReader
+    packet = BytesIO()
+    c = rl_canvas.Canvas(packet, pagesize=LETTER)
+    H = 792
+
+    def txt(x, top, text, size=8):
+        c.setFont("Helvetica", size)
+        c.setFillColorRGB(0, 0, 0)
+        c.drawString(x, _lease_pdf_y(top, H), text)
+
+    txt(408, 123, data.get('original_lease_date', ''), size=8)
+    txt(135, 146, data.get('lessee_name', ''), size=8)
+    txt(290, 146, data.get('lessor_name', ''), size=8)
+    txt(92,  233, data.get('unit_no', ''), size=8)
+    txt(200, 233, data.get('make', ''), size=8)
+    txt(308, 233, data.get('year', ''), size=8)
+    txt(380, 233, data.get('vin', ''), size=8)
+    txt(185, 282, data.get('lessor_name', ''), size=8)
+    txt(92, 309, data.get('lessee_name', ''), size=8)
+
+    termination_date = data.get('termination_date', '')
+    txt(340, 337, termination_date, size=8)
+    txt(223, 424, termination_date, size=8)
+
+    SIG_W = 130
+    SIG_H = 30
+
+    def draw_signature(sig_path, x, sig_line_top):
+        if not sig_path or not os.path.exists(sig_path):
+            return
+        try:
+            img = Image.open(sig_path)
+            img = _lease_remove_background(img)
+            bbox = img.getbbox()
+            if bbox:
+                img = img.crop(bbox)
+            img_reader = ImageReader(img)
+            y_bottom = _lease_pdf_y(sig_line_top, H)
+            c.drawImage(img_reader, x, y_bottom, width=SIG_W, height=SIG_H,
+                        mask='auto', preserveAspectRatio=False)
+        except Exception as e:
+            print(f"Signature error: {e}")
+
+    draw_signature(lessee_sig_path, 90, 494.6)
+    txt(280, 497, data.get('lessee_title', ''), size=8)
+    draw_signature(lessor_sig_path, 90, 540.6)
+    txt(280, 543, data.get('lessor_title', ''), size=8)
+
+    c.save()
+    packet.seek(0)
+    return packet
+
+
+@app.route("/lease-termination")
+@login_required
+def lease_termination():
+    return render_template("lease_termination.html")
+
+
+@app.route("/lease-termination/generate", methods=["POST"])
+@login_required
+def lease_termination_generate():
+    data = {k: request.form.get(k, '') for k in [
+        'original_lease_date', 'lessee_name', 'lessor_name',
+        'unit_no', 'make', 'year', 'vin',
+        'termination_date',
+        'lessee_title', 'lessor_title',
+    ]}
+    lessee_sig = _lease_random_signature(LESSEE_SIG_FOLDER)
+    lessor_sig = _lease_random_signature(LESSOR_SIG_FOLDER)
+    overlay_packet = _lease_create_overlay_pdf(data, lessee_sig, lessor_sig)
+
+    template_reader = pypdf.PdfReader(LEASE_TEMPLATE_PATH)
+    overlay_reader = pypdf.PdfReader(overlay_packet)
+    writer = pypdf.PdfWriter()
+    page = template_reader.pages[0]
+    page.merge_page(overlay_reader.pages[0])
+    writer.add_page(page)
+
+    output = BytesIO()
+    writer.write(output)
+    output.seek(0)
+
+    try:
+        log_download(current_user.id, data.get('lessee_name','') or data.get('lessor_name',''), 'Lease Termination', 'Lease_Termination_Agreement.pdf')
+    except Exception:
+        pass
+
+    return send_file(output, mimetype='application/pdf', as_attachment=True,
+                      download_name='Lease_Termination_Agreement.pdf')
+
+
+# ── Admin: Signature library management ─────────────────────────────────────
+
+@app.route("/admin/signatures")
+@login_required
+@admin_required
+def admin_signatures():
+    lessee_sigs = [f for f in os.listdir(LESSEE_SIG_FOLDER) if _lease_allowed_file(f)]
+    lessor_sigs = [f for f in os.listdir(LESSOR_SIG_FOLDER) if _lease_allowed_file(f)]
+    return render_template("admin_signatures.html", lessee_sigs=lessee_sigs, lessor_sigs=lessor_sigs)
+
+
+@app.route("/admin/signatures/upload", methods=["POST"])
+@login_required
+@admin_required
+def admin_signatures_upload():
+    from datetime import datetime as _dt
+    sig_type = request.form.get('sig_type')
+    folder = LESSEE_SIG_FOLDER if sig_type == 'lessee' else LESSOR_SIG_FOLDER if sig_type == 'lessor' else None
+    if not folder:
+        return jsonify({'error': "Invalid type"}), 400
+    if 'signature' not in request.files:
+        return jsonify({'error': 'No file'}), 400
+    file = request.files['signature']
+    if file and _lease_allowed_file(file.filename):
+        ext = file.filename.rsplit('.', 1)[1].lower()
+        filename = f"sig_{_dt.now().strftime('%Y%m%d%H%M%S%f')}.{ext}"
+        file.save(os.path.join(folder, filename))
+        return jsonify({'success': True, 'filename': filename})
+    return jsonify({'error': 'Only JPG or PNG allowed'}), 400
+
+
+@app.route("/admin/signatures/delete", methods=["POST"])
+@login_required
+@admin_required
+def admin_signatures_delete():
+    sig_type = request.json.get('sig_type')
+    filename = request.json.get('filename')
+    folder = LESSEE_SIG_FOLDER if sig_type == 'lessee' else LESSOR_SIG_FOLDER if sig_type == 'lessor' else None
+    if not folder or not filename:
+        return jsonify({'error': 'Invalid'}), 400
+    path = os.path.join(folder, filename)
+    if os.path.exists(path) and os.path.dirname(os.path.abspath(path)) == os.path.abspath(folder):
+        os.remove(path)
+        return jsonify({'success': True})
+    return jsonify({'error': 'Not found'}), 404
+
+
+@app.route("/admin/signatures/preview/<sig_type>/<filename>")
+@login_required
+@admin_required
+def admin_signatures_preview(sig_type, filename):
+    from flask import send_from_directory
+    folder = LESSEE_SIG_FOLDER if sig_type == 'lessee' else LESSOR_SIG_FOLDER
+    path = os.path.join(folder, filename)
+    if os.path.exists(path) and os.path.dirname(os.path.abspath(path)) == os.path.abspath(folder):
+        return send_from_directory(folder, filename)
+    return '', 404
 
 if __name__ == "__main__":
     print("=" * 55)

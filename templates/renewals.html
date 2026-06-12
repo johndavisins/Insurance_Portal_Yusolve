@@ -132,6 +132,11 @@ select option{background:#0f2044}
 
 footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px solid var(--border);color:var(--muted);font-size:11px}
 @media(max-width:900px){.stats{grid-template-columns:1fr 1fr}.tbl th:nth-child(4),.tbl td:nth-child(4),.tbl th:nth-child(6),.tbl td:nth-child(6){display:none}}
+
+.lang-switch{display:flex;gap:2px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;padding:2px}
+.lang-btn{background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;padding:5px 10px;border-radius:5px;cursor:pointer;transition:all .15s;letter-spacing:.5px}
+.lang-btn.active{background:var(--red);color:#fff}
+.lang-btn:not(.active):hover{color:#fff}
 </style>
 </head>
 <body>
@@ -143,16 +148,10 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
     <div><span class="bname">Yusolve</span><span class="bsub">Insurance Operations</span></div>
   </div>
   <nav>
-    <a href="/">Dashboard</a>
-    <a href="/renewals" class="active">Renewals</a>
-    
-    <a href="/payments">Payments</a>
-    
-    {% if current_user.is_admin %}<a href="/admin">Admin</a>{% endif %}
-    <a href="/">Dashboard</a>
-    <a href="/renewals" class="active">Renewals</a>
-    <a href="/payments">Payments</a>
-    {% if current_user.is_admin %}<a href="/admin">Admin</a>{% endif %}
+    <a href="/" data-i18n="nav_dashboard">Dashboard</a>
+    <a href="/renewals" class="active" data-i18n="nav_renewals">Renewals</a>
+    <a href="/payments" data-i18n="nav_payments">Payments</a>
+    {% if current_user.is_admin %}<a href="/admin" data-i18n="nav_admin">Admin</a>{% endif %}
     
     <div style="width:1px;height:20px;background:rgba(255,255,255,0.08);margin:0 4px"></div>
     <div style="position:relative" id="pWrap">
@@ -165,7 +164,7 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
           <div style="font-size:13px;font-weight:600;color:#fff">{{ current_user.full_name }}</div>
           <div style="font-size:11px;color:#8899bb;margin-top:2px">{{ current_user.email }}</div>
         </div>
-        <a href="/profile" style="display:block;padding:9px 14px;font-size:12px;color:rgba(255,255,255,0.7);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.04)">&#x1F464; My profile</a>
+        <a href="/profile" style="display:block;padding:9px 14px;font-size:12px;color:rgba(255,255,255,0.7);text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.04)">&#x1F464; <span data-i18n="nav_profile">My profile</span></a>
         
   </nav>
 </header>
@@ -178,13 +177,13 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
   <!-- Countdown banner -->
   {% if stats.urgent > 0 or stats.upcoming > 0 %}
   <div class="countdown">
-    <span style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">⏰ Renewal alerts</span>
+    <span style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)">⏰ <span data-i18n="countdown_title">Renewal alerts</span></span>
     <div class="cd-sep"></div>
     {% if stats.urgent > 0 %}
     <div class="cd-item">
       <div>
         <div class="cd-num red">{{ stats.urgent }}</div>
-        <div class="cd-label">Expiring<br>within 30 days</div>
+        <div class="cd-label" data-i18n="countdown_expiring_30">Expiring<br>within 30 days</div>
       </div>
     </div>
     {% endif %}
@@ -193,46 +192,46 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
     <div class="cd-item">
       <div>
         <div class="cd-num yellow">{{ stats.upcoming }}</div>
-        <div class="cd-label">Expiring in<br>30–60 days</div>
+        <div class="cd-label" data-i18n="countdown_expiring_60">Expiring in<br>30–60 days</div>
       </div>
     </div>
     {% endif %}
-    <div style="margin-left:auto;font-size:12px;color:var(--muted)">Take action before policies lapse</div>
+    <div style="margin-left:auto;font-size:12px;color:var(--muted)" data-i18n="countdown_action">Take action before policies lapse</div>
   </div>
   {% endif %}
 
   <div class="ph">
-    <h1 class="ptitle">📅 Policy Renewals</h1>
+    <h1 class="ptitle">📅 <span data-i18n="page_renewals">Policy Renewals</span></h1>
     <div class="hbtns">
-      <a href="/renewals/export" class="btn btn-csv">⬇ Export CSV</a>
-      <button class="btn btn-add" onclick="openAddModal()">+ Add renewal</button>
+      <a href="/renewals/export" class="btn btn-csv">⬇ <span data-i18n="btn_export_csv">Export CSV</span></a>
+      <button class="btn btn-add" onclick="openAddModal()" data-i18n="btn_add_renewal">+ Add renewal</button>
     </div>
   </div>
 
   <div class="stats">
-    <div class="sc b"><div class="snum cb">{{ stats.total }}</div><div class="slbl">Total policies</div></div>
-    <div class="sc r"><div class="snum cr">{{ stats.urgent }}</div><div class="slbl">Urgent &lt;30 days</div></div>
-    <div class="sc y"><div class="snum cy">{{ stats.upcoming }}</div><div class="slbl">Upcoming 30–60d</div></div>
-    <div class="sc g"><div class="snum cg">{{ stats.ok }}</div><div class="slbl">OK &gt;60 days</div></div>
+    <div class="sc b"><div class="snum cb">{{ stats.total }}</div><div class="slbl" data-i18n="stat_total_policies_short">Total policies</div></div>
+    <div class="sc r"><div class="snum cr">{{ stats.urgent }}</div><div class="slbl" data-i18n="stat_urgent_short">Urgent &lt;30 days</div></div>
+    <div class="sc y"><div class="snum cy">{{ stats.upcoming }}</div><div class="slbl" data-i18n="stat_upcoming_short">Upcoming 30–60d</div></div>
+    <div class="sc g"><div class="snum cg">{{ stats.ok }}</div><div class="slbl" data-i18n="stat_ok_short">OK &gt;60 days</div></div>
   </div>
 
   <div class="filters">
-    <input class="fsearch" type="text" id="searchInput" placeholder="🔍 Search company, carrier, policy#..." oninput="filterTable()">
+    <input class="fsearch" type="text" id="searchInput" placeholder="🔍 Search company, carrier, policy#..." data-i18n-placeholder="search_placeholder" oninput="filterTable()">
     <select class="fsel" id="filterColor" onchange="filterTable()">
-      <option value="">All urgency</option>
+      <option value="" data-i18n="filter_all_urgency">All urgency</option>
       <option value="red">🔴 Urgent (&lt;30d)</option>
       <option value="yellow">🟡 Upcoming (30–60d)</option>
       <option value="green">🟢 OK (&gt;60d)</option>
     </select>
     <select class="fsel" id="filterType" onchange="filterTable()">
-      <option value="">All types</option>
+      <option value="" data-i18n="filter_all_types">All types</option>
       {% for pt in policy_types %}<option value="{{ pt }}">{{ pt }}</option>{% endfor %}
     </select>
     <select class="fsel" id="filterCarrier" onchange="filterTable()">
-      <option value="">All carriers</option>
+      <option value="" data-i18n="filter_all_carriers">All carriers</option>
       {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
     </select>
-    <button class="fclear" onclick="clearFilters()">Clear</button>
+    <button class="fclear" onclick="clearFilters()" data-i18n="clear">Clear</button>
     <span class="row-count" id="rowCount"></span>
   </div>
 
@@ -240,16 +239,16 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
     <table class="tbl" id="mainTable">
       <thead>
         <tr>
-          <th>Company</th>
-          <th>Policy type</th>
-          <th>Carrier</th>
-          <th>Policy #</th>
-          <th>Agent</th>
-          <th>Renewal date</th>
-          <th>Days left</th>
-          <th>Premium</th>
-          <th>Status</th>
-          <th>Actions</th>
+          <th data-i18n="th_company">Company</th>
+          <th data-i18n="th_policy_type">Policy type</th>
+          <th data-i18n="th_carrier">Carrier</th>
+          <th data-i18n="th_policy_num">Policy #</th>
+          <th data-i18n="th_agent">Agent</th>
+          <th data-i18n="th_renewal_date">Renewal date</th>
+          <th data-i18n="th_days_left">Days left</th>
+          <th data-i18n="th_premium">Premium</th>
+          <th data-i18n="th_status">Status</th>
+          <th data-i18n="th_actions">Actions</th>
         </tr>
       </thead>
       <tbody id="tableBody">
@@ -272,7 +271,7 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
             <div class="actions">
               <button class="btn-sm btn-email" onclick="loadEmailTemplate({{ r.id }}, '{{ r.company|e }}')">📧 Email</button>
               <button class="btn-sm btn-edit" onclick="openEditModal({{ r.id }},'{{ r.company|e }}','{{ r.policy_type|e }}','{{ r.carrier|e }}','{{ r.renewal_date }}','{{ r.premium|e }}','{{ r.get('policy_number','')|e }}','{{ r.get('agent_name','')|e }}','{{ r.status }}',{{ r.auto_renew }},'{{ r.get('notes','')|e }}')">Edit</button>
-              <a href="/renewals/history/{{ r.id }}" class="btn-sm" style="background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.3);color:#9b59b6;text-decoration:none">History</a>
+              <a href="/renewals/history/{{ r.id }}" class="btn-sm" style="background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.3);color:#9b59b6;text-decoration:none"><span data-i18n="btn_history">History</span></a>
               {% if r.auto_renew %}
               <form method="POST" action="/renewals/renew/{{ r.id }}" style="display:inline">
                 <button class="btn-sm btn-renew" type="submit" onclick="return confirm('Push renewal date 1 year forward?')">+1yr</button>
@@ -285,7 +284,7 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="10"><div class="empty">No renewals yet. Click "+ Add renewal" to get started.</div></td></tr>
+        <tr><td colspan="10"><div class="empty" data-i18n="no_renewals_yet">No renewals yet. Click "+ Add renewal" to get started.</div></td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -297,22 +296,22 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
 <!-- Add Modal -->
 <div class="modal-overlay" id="addModal">
   <div class="modal">
-    <div class="modal-title">Add renewal <button class="modal-close" onclick="closeModal('addModal')">✕</button></div>
+    <div class="modal-title"><span data-i18n="modal_add_renewal">Add renewal</span> <button class="modal-close" onclick="closeModal('addModal')">✕</button></div>
     <form method="POST" action="/renewals/add">
       <div class="form-grid">
-        <div class="form-group full"><label>Company name *</label><input type="text" name="company" placeholder="e.g. A and G Express Group LLC" required></div>
-        <div class="form-group"><label>Policy type *</label>
+        <div class="form-group full"><label data-i18n="lbl_company_name">Company name *</label><input type="text" name="company" placeholder="e.g. A and G Express Group LLC" required></div>
+        <div class="form-group"><label data-i18n="lbl_policy_type">Policy type *</label>
           <select name="policy_type" required><option value="">Select...</option>
           {% for pt in policy_types %}<option value="{{ pt }}">{{ pt }}</option>{% endfor %}</select>
         </div>
-        <div class="form-group"><label>Carrier *</label>
+        <div class="form-group"><label data-i18n="lbl_carrier">Carrier *</label>
           <select name="carrier" required><option value="">Select...</option>
           {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
         </div>
-        <div class="form-group"><label>Policy number</label><input type="text" name="policy_number" placeholder="e.g. POL-2024-001234"></div>
-        <div class="form-group"><label>Agent name</label><input type="text" name="agent_name" placeholder="e.g. Mike Johnson"></div>
-        <div class="form-group"><label>Renewal date *</label><input type="date" name="renewal_date" required></div>
-        <div class="form-group"><label>Annual premium ($)</label><input type="text" name="premium" placeholder="e.g. 12,500"></div>
+        <div class="form-group"><label data-i18n="lbl_policy_number">Policy number</label><input type="text" name="policy_number" placeholder="e.g. POL-2024-001234"></div>
+        <div class="form-group"><label data-i18n="lbl_agent_name">Agent name</label><input type="text" name="agent_name" placeholder="e.g. Mike Johnson"></div>
+        <div class="form-group"><label data-i18n="lbl_renewal_date">Renewal date *</label><input type="date" name="renewal_date" required></div>
+        <div class="form-group"><label data-i18n="lbl_premium">Annual premium ($)</label><input type="text" name="premium" placeholder="e.g. 12,500"></div>
         <div class="form-group full"><label>Notes</label><textarea name="notes" rows="3" placeholder="Any notes about this policy..." style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:9px 12px;color:#fff;font-size:13px;font-family:Barlow,sans-serif;outline:none;width:100%;resize:vertical"></textarea></div>
         <div class="form-group full">
           <div class="toggle-row">
@@ -323,8 +322,8 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
         </div>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
-        <button type="submit" class="btn-save">Save renewal</button>
+        <button type="button" class="btn-cancel" onclick="closeModal('addModal')" data-i18n="btn_cancel">Cancel</button>
+        <button type="submit" class="btn-save" data-i18n="btn_save_renewal">Save renewal</button>
       </div>
     </form>
   </div>
@@ -333,27 +332,27 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
 <!-- Edit Modal -->
 <div class="modal-overlay" id="editModal">
   <div class="modal">
-    <div class="modal-title">Edit renewal <button class="modal-close" onclick="closeModal('editModal')">✕</button></div>
+    <div class="modal-title"><span data-i18n="modal_edit_renewal">Edit renewal</span> <button class="modal-close" onclick="closeModal('editModal')">✕</button></div>
     <form method="POST" id="editForm">
       <div class="form-grid">
-        <div class="form-group full"><label>Company name *</label><input type="text" name="company" id="eCompany" required></div>
-        <div class="form-group"><label>Policy type *</label>
+        <div class="form-group full"><label data-i18n="lbl_company_name">Company name *</label><input type="text" name="company" id="eCompany" required></div>
+        <div class="form-group"><label data-i18n="lbl_policy_type">Policy type *</label>
           <select name="policy_type" id="ePolicyType" required>
           {% for pt in policy_types %}<option value="{{ pt }}">{{ pt }}</option>{% endfor %}</select>
         </div>
-        <div class="form-group"><label>Carrier *</label>
+        <div class="form-group"><label data-i18n="lbl_carrier">Carrier *</label>
           <select name="carrier" id="eCarrier" required>
           {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
         </div>
-        <div class="form-group"><label>Policy number</label><input type="text" name="policy_number" id="ePolicyNum" placeholder="e.g. POL-2024-001234"></div>
-        <div class="form-group"><label>Agent name</label><input type="text" name="agent_name" id="eAgent" placeholder="e.g. Mike Johnson"></div>
-        <div class="form-group"><label>Renewal date *</label><input type="date" name="renewal_date" id="eDate" required></div>
-        <div class="form-group"><label>Annual premium ($)</label><input type="text" name="premium" id="ePremium"></div>
-        <div class="form-group"><label>Status</label>
+        <div class="form-group"><label data-i18n="lbl_policy_number">Policy number</label><input type="text" name="policy_number" id="ePolicyNum" placeholder="e.g. POL-2024-001234"></div>
+        <div class="form-group"><label data-i18n="lbl_agent_name">Agent name</label><input type="text" name="agent_name" id="eAgent" placeholder="e.g. Mike Johnson"></div>
+        <div class="form-group"><label data-i18n="lbl_renewal_date">Renewal date *</label><input type="date" name="renewal_date" id="eDate" required></div>
+        <div class="form-group"><label data-i18n="lbl_premium">Annual premium ($)</label><input type="text" name="premium" id="ePremium"></div>
+        <div class="form-group"><label data-i18n="lbl_status">Status</label>
           <select name="status" id="eStatus">
-            <option value="Active">Active</option>
-            <option value="Expired">Expired</option>
-            <option value="Cancelled">Cancelled</option>
+            <option value="Active" data-i18n="status_active">Active</option>
+            <option value="Expired" data-i18n="status_expired">Expired</option>
+            <option value="Cancelled" data-i18n="status_cancelled">Cancelled</option>
           </select>
         </div>
         <div class="form-group full"><label>Notes</label><textarea name="notes" id="eNotes" rows="3" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:9px 12px;color:#fff;font-size:13px;font-family:Barlow,sans-serif;outline:none;width:100%;resize:vertical"></textarea></div>
@@ -366,8 +365,8 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
         </div>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn-cancel" onclick="closeModal('editModal')">Cancel</button>
-        <button type="submit" class="btn-save">Save changes</button>
+        <button type="button" class="btn-cancel" onclick="closeModal('editModal')" data-i18n="btn_cancel">Cancel</button>
+        <button type="submit" class="btn-save" data-i18n="btn_save_changes">Save changes</button>
       </div>
     </form>
   </div>
@@ -376,19 +375,19 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
 <!-- Email Modal -->
 <div class="modal-overlay" id="emailModal">
   <div class="modal" style="width:600px">
-    <div class="modal-title">📧 Carrier renewal notice <button class="modal-close" onclick="closeModal('emailModal')">✕</button></div>
+    <div class="modal-title">📧 <span data-i18n="modal_email_title">Carrier renewal notice</span> <button class="modal-close" onclick="closeModal('emailModal')">✕</button></div>
     <div style="margin-bottom:8px">
-      <div style="font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Subject</div>
+      <div style="font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px" data-i18n="email_subject">Subject</div>
       <div class="subject-box" id="emailSubject">Loading...</div>
     </div>
     <div style="margin-bottom:14px">
-      <div style="font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Email body</div>
+      <div style="font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin-bottom:5px" data-i18n="email_body">Email body</div>
       <div class="email-box" id="emailBody">Loading...</div>
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="copy-btn" id="copySubjectBtn" onclick="copyText('emailSubject','copySubjectBtn','Subject copied!')">Copy subject</button>
-      <button class="copy-btn" id="copyBodyBtn" onclick="copyText('emailBody','copyBodyBtn','Body copied!')">Copy body</button>
-      <button class="btn-cancel" onclick="closeModal('emailModal')">Close</button>
+      <button class="copy-btn" id="copySubjectBtn" onclick="copyText('emailSubject','copySubjectBtn','Subject copied!')">data-i18n="copy_subject">Copy subject</button>
+      <button class="copy-btn" id="copyBodyBtn" onclick="copyText('emailBody','copyBodyBtn','Body copied!')">data-i18n="copy_body">Copy body</button>
+      <button class="btn-cancel" onclick="closeModal('emailModal')" data-i18n="btn_close">Close</button>
     </div>
   </div>
 </div>
@@ -481,5 +480,6 @@ function clearFilters(){
 if(new URLSearchParams(location.search).get('new')==='1') openAddModal();
 filterTable();
 </script>
+<script src="/static/i18n.js"></script>
 </body>
 </html>

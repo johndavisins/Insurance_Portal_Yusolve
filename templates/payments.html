@@ -108,6 +108,11 @@ select option{background:#0f2044}
 footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px solid var(--border);color:var(--muted);font-size:11px}
 @media(max-width:768px){header{padding:0 16px}main{padding:16px 16px 40px}.stats{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:480px){.stats{grid-template-columns:1fr 1fr}}
+
+.lang-switch{display:flex;gap:2px;background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:7px;padding:2px}
+.lang-btn{background:none;border:none;color:var(--muted);font-size:11px;font-weight:700;padding:5px 10px;border-radius:5px;cursor:pointer;transition:all .15s;letter-spacing:.5px}
+.lang-btn.active{background:var(--red);color:#fff}
+.lang-btn:not(.active):hover{color:#fff}
 </style>
 </head>
 <body>
@@ -118,10 +123,11 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
     <div><span class="bname">Yusolve</span><span class="bsub">Insurance Operations</span></div>
   </div>
   <nav>
-    <a href="/" class="nl">Dashboard</a>
-    <a href="/renewals" class="nl">Renewals</a>
-    <a href="/payments" class="nl active">Payments</a>
-    {% if current_user.is_admin %}<a href="/admin" class="nl">Admin</a>{% endif %}
+    <a href="/" class="nl" data-i18n="nav_dashboard">Dashboard</a>
+    <a href="/renewals" class="nl" data-i18n="nav_renewals">Renewals</a>
+    <a href="/payments" class="nl active" data-i18n="nav_payments">Payments</a>
+    {% if current_user.is_admin %}<a href="/admin" class="nl" data-i18n="nav_admin">Admin</a>{% endif %}
+    <div class="lang-switch"><button class="lang-btn" data-lang="en" onclick="applyLang('en')">EN</button><button class="lang-btn" data-lang="uz" onclick="applyLang('uz')">UZ</button></div>
     <div class="nav-sep"></div>
     <div class="profile-wrap">
       <div class="profile-btn" onclick="toggleProfile(event)">
@@ -134,9 +140,9 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
           <div class="pd-name">{{ current_user.full_name }}</div>
           <div class="pd-email">{{ current_user.email }}</div>
         </div>
-        <a href="/profile" class="pd-item">👤 My profile</a>
-        {% if current_user.is_admin %}<a href="/admin" class="pd-item">⚙️ Admin panel</a>{% endif %}
-        <a href="/logout" class="pd-item danger">🚪 Sign out</a>
+        <a href="/profile" class="pd-item">👤 <span data-i18n="nav_profile">My profile</span></a>
+        {% if current_user.is_admin %}<a href="/admin" class="pd-item">⚙️ <span data-i18n="nav_admin">Admin panel</span></a>{% endif %}
+        <a href="/logout" class="pd-item danger">🚪 <span data-i18n="nav_signout">Sign out</span></a>
       </div>
     </div>
   </nav>
@@ -147,52 +153,52 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
     {% for cat, msg in messages %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
   {% endwith %}
   <div class="ph">
-    <h1 class="ptitle">💰 Payments</h1>
+    <h1 class="ptitle">💰 <span data-i18n="page_payments">Payments</span></h1>
     <div class="hbtns">
-      <a href="/payments/export" class="btn btn-csv">⬇ Export CSV</a>
-      <button class="btn btn-add" onclick="openModal('addModal')">+ Add payment</button>
+      <a href="/payments/export" class="btn btn-csv">⬇ <span data-i18n="btn_export_csv">Export CSV</span></a>
+      <button class="btn btn-add" onclick="openModal('addModal')" data-i18n="add_payment">+ Add payment</button>
     </div>
   </div>
   <div class="stats">
-    <div class="sc b"><div class="snum cb">{{ stats.total }}</div><div class="slbl">Total records</div></div>
-    <div class="sc r"><div class="snum cr">{{ stats.overdue }}</div><div class="slbl">Overdue</div></div>
-    <div class="sc y"><div class="snum cy">{{ stats.due_soon }}</div><div class="slbl">Due ≤7 days</div></div>
-    <div class="sc g"><div class="snum cg">{{ stats.paid }}</div><div class="slbl">Paid</div></div>
-    <div class="sc p"><div class="snum cp">${{ "{:,.0f}".format(stats.total_outstanding) }}</div><div class="slbl">Outstanding</div></div>
+    <div class="sc b"><div class="snum cb">{{ stats.total }}</div><div class="slbl" data-i18n="stat_total_records">Total records</div></div>
+    <div class="sc r"><div class="snum cr">{{ stats.overdue }}</div><div class="slbl" data-i18n="stat_overdue">Overdue</div></div>
+    <div class="sc y"><div class="snum cy">{{ stats.due_soon }}</div><div class="slbl" data-i18n="stat_due_7days">Due ≤7 days</div></div>
+    <div class="sc g"><div class="snum cg">{{ stats.paid }}</div><div class="slbl" data-i18n="stat_paid">Paid</div></div>
+    <div class="sc p"><div class="snum cp">${{ "{:,.0f}".format(stats.total_outstanding) }}</div><div class="slbl" data-i18n="stat_outstanding_short">Outstanding</div></div>
   </div>
   <div class="filters">
-    <input class="fsearch" type="text" id="searchInput" placeholder="🔍 Search company, ref#..." oninput="filterTable()">
+    <input class="fsearch" type="text" id="searchInput" placeholder="🔍 Search company, ref#..." data-i18n-placeholder="search_placeholder" oninput="filterTable()">
     <select class="fsel" id="filterStatus" onchange="filterTable()">
-      <option value="">All statuses</option>
+      <option value="" data-i18n="filter_all_statuses">All statuses</option>
       <option value="Overdue">🔴 Overdue</option>
       <option value="Pending">🔵 Pending</option>
       <option value="Paid">🟢 Paid</option>
     </select>
     <select class="fsel" id="filterMethod" onchange="filterTable()">
-      <option value="">All methods</option>
+      <option value="" data-i18n="filter_all_methods">All methods</option>
       <option value="ACH">ACH</option>
       <option value="Credit Card">Credit Card</option>
       <option value="Check">Check</option>
       <option value="Wire">Wire</option>
       <option value="Zelle">Zelle</option>
     </select>
-    <button class="fclear" onclick="clearFilters()">Clear</button>
+    <button class="fclear" onclick="clearFilters()" data-i18n="clear">Clear</button>
     <span style="margin-left:auto;font-size:12px;color:var(--muted)" id="rowCount"></span>
   </div>
   <div class="tbl-wrap">
     <table class="tbl" id="mainTable">
       <thead>
         <tr>
-          <th>Company</th>
-          <th>Carrier</th>
-          <th>Amount</th>
-          <th>Due date</th>
-          <th>Payment method</th>
-          <th>Bank / Card</th>
-          <th>Ref #</th>
-          <th>Paid date</th>
-          <th>Status</th>
-          <th>Actions</th>
+          <th data-i18n="th_company">Company</th>
+          <th data-i18n="th_carrier">Carrier</th>
+          <th data-i18n="th_amount">Amount</th>
+          <th data-i18n="th_due_date">Due date</th>
+          <th data-i18n="th_payment_method">Payment method</th>
+          <th data-i18n="th_bank_card">Bank / Card</th>
+          <th data-i18n="th_ref">Ref #</th>
+          <th data-i18n="th_paid_date">Paid date</th>
+          <th data-i18n="th_status">Status</th>
+          <th data-i18n="th_actions">Actions</th>
         </tr>
       </thead>
       <tbody id="tableBody">
@@ -213,19 +219,19 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
           <td>
             <div class="actions">
               {% if p.status != 'Paid' %}
-              <button class="btn-sm btn-paid" onclick="openMarkPaid({{ p.id }},'{{ p.company|e }}')">✓ Paid</button>
+              <button class="btn-sm btn-paid" onclick="openMarkPaid({{ p.id }},'{{ p.company|e }}')"><span data-i18n="btn_paid">✓ Paid</span></button>
               {% endif %}
-              <a href="/payments/invoice/{{ p.id }}" class="btn-sm btn-inv">📄 Invoice</a>
-              <button class="btn-sm btn-edit" onclick="openEditModal({{ p.id }},'{{ p.company|e }}','{{ p.policy_number|e }}','{{ p.carrier|e }}',{{ p.amount }},'{{ p.due_date }}','{{ p.status }}','{{ p.get('payment_method','')|e }}','{{ p.get('bank_name','')|e }}','{{ p.get('reference_num','')|e }}','{{ p.note|e }}')">Edit</button>
-              <a href="/payments/history/{{ p.id }}" class="btn-sm btn-hist">History</a>
+              <a href="/payments/invoice/{{ p.id }}" class="btn-sm btn-inv"><span data-i18n="btn_invoice">📄 Invoice</span></a>
+              <button class="btn-sm btn-edit" onclick="openEditModal({{ p.id }},'{{ p.company|e }}','{{ p.policy_number|e }}','{{ p.carrier|e }}',{{ p.amount }},'{{ p.due_date }}','{{ p.status }}','{{ p.get('payment_method','')|e }}','{{ p.get('bank_name','')|e }}','{{ p.get('reference_num','')|e }}','{{ p.note|e }}')"><span data-i18n="btn_edit">Edit</span></button>
+              <a href="/payments/history/{{ p.id }}" class="btn-sm btn-hist"><span data-i18n="btn_history">History</span></a>
               <form method="POST" action="/payments/delete/{{ p.id }}" style="display:inline">
-                <button class="btn-sm btn-del" type="submit" onclick="return confirm('Delete?')">Del</button>
+                <button class="btn-sm btn-del" type="submit" onclick="return confirm('Delete?')"><span data-i18n="btn_del">Del</span></button>
               </form>
             </div>
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="10"><div class="empty">No payment records yet. Click "+ Add payment" to get started.</div></td></tr>
+        <tr><td colspan="10"><div class="empty" data-i18n="no_payments_yet">No payment records yet. Click "+ Add payment" to get started.</div></td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -236,21 +242,21 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
 <!-- Add Modal -->
 <div class="modal-overlay" id="addModal">
   <div class="modal">
-    <div class="modal-title">Add payment <button class="modal-close" onclick="closeModal('addModal')">✕</button></div>
+    <div class="modal-title"><span data-i18n="modal_add_payment">Add payment</span> <button class="modal-close" onclick="closeModal('addModal')">✕</button></div>
     <form method="POST" action="/payments/add">
       <div class="form-grid">
-        <div class="section-label">Policy information</div>
-        <div class="form-group full"><label>Company name *</label><input type="text" name="company" placeholder="e.g. A and G Express Group LLC" required></div>
-        <div class="form-group"><label>Policy number</label><input type="text" name="policy_number" placeholder="e.g. POL-2024-001"></div>
-        <div class="form-group"><label>Carrier</label>
+        <div class="section-label" data-i18n="section_policy_info">Policy information</div>
+        <div class="form-group full"><label data-i18n="lbl_company_name">Company name *</label><input type="text" name="company" placeholder="e.g. A and G Express Group LLC" required></div>
+        <div class="form-group"><label data-i18n="lbl_policy_number">Policy number</label><input type="text" name="policy_number" placeholder="e.g. POL-2024-001"></div>
+        <div class="form-group"><label data-i18n="lbl_carrier">Carrier</label>
           <select name="carrier"><option value="">Select...</option>
           {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
         </div>
-        <div class="form-group"><label>Amount ($) *</label><input type="text" name="amount" placeholder="e.g. 3200" required></div>
-        <div class="form-group"><label>Due date *</label><input type="date" name="due_date" required></div>
+        <div class="form-group"><label data-i18n="lbl_amount">Amount ($) *</label><input type="text" name="amount" placeholder="e.g. 3200" required></div>
+        <div class="form-group"><label data-i18n="lbl_due_date">Due date *</label><input type="date" name="due_date" required></div>
         <hr class="section-sep">
-        <div class="section-label">Payment details</div>
-        <div class="form-group"><label>Payment method</label>
+        <div class="section-label" data-i18n="section_payment_details">Payment details</div>
+        <div class="form-group"><label data-i18n="lbl_payment_method">Payment method</label>
           <select name="payment_method">
             <option value="">Select...</option>
             <option>ACH / Bank transfer</option>
@@ -262,13 +268,13 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
             <option>Cash</option>
           </select>
         </div>
-        <div class="form-group"><label>Bank / Card name</label><input type="text" name="bank_name" placeholder="e.g. Chase, Wells Fargo, Visa *4321"></div>
-        <div class="form-group full"><label>Reference / Check number</label><input type="text" name="reference_num" placeholder="e.g. CHK-10045 or ACH-REF-882211"></div>
-        <div class="form-group full"><label>Note</label><textarea name="note" rows="2" placeholder="Optional note..."></textarea></div>
+        <div class="form-group"><label data-i18n="lbl_bank_name">Bank / Card name</label><input type="text" name="bank_name" placeholder="e.g. Chase, Wells Fargo, Visa *4321"></div>
+        <div class="form-group full"><label data-i18n="lbl_reference">Reference / Check number</label><input type="text" name="reference_num" placeholder="e.g. CHK-10045 or ACH-REF-882211"></div>
+        <div class="form-group full"><label data-i18n="lbl_notes">Note</label><textarea name="note" rows="2" placeholder="Optional note..."></textarea></div>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
-        <button type="submit" class="btn-save">Save payment</button>
+        <button type="button" class="btn-cancel" onclick="closeModal('addModal')" data-i18n="btn_cancel">Cancel</button>
+        <button type="submit" class="btn-save" data-i18n="btn_save_payment">Save payment</button>
       </div>
     </form>
   </div>
@@ -277,28 +283,28 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
 <!-- Edit Modal -->
 <div class="modal-overlay" id="editModal">
   <div class="modal">
-    <div class="modal-title">Edit payment <button class="modal-close" onclick="closeModal('editModal')">✕</button></div>
+    <div class="modal-title"><span data-i18n="modal_edit_payment">Edit payment</span> <button class="modal-close" onclick="closeModal('editModal')">✕</button></div>
     <form method="POST" id="editForm">
       <div class="form-grid">
-        <div class="section-label">Policy information</div>
-        <div class="form-group full"><label>Company name *</label><input type="text" name="company" id="eCompany" required></div>
-        <div class="form-group"><label>Policy number</label><input type="text" name="policy_number" id="ePolNum"></div>
-        <div class="form-group"><label>Carrier</label>
+        <div class="section-label" data-i18n="section_policy_info">Policy information</div>
+        <div class="form-group full"><label data-i18n="lbl_company_name">Company name *</label><input type="text" name="company" id="eCompany" required></div>
+        <div class="form-group"><label data-i18n="lbl_policy_number">Policy number</label><input type="text" name="policy_number" id="ePolNum"></div>
+        <div class="form-group"><label data-i18n="lbl_carrier">Carrier</label>
           <select name="carrier" id="eCarrier"><option value="">Select...</option>
           {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
         </div>
         <div class="form-group"><label>Amount ($)</label><input type="text" name="amount" id="eAmount"></div>
-        <div class="form-group"><label>Due date</label><input type="date" name="due_date" id="eDue"></div>
-        <div class="form-group"><label>Status</label>
+        <div class="form-group"><label data-i18n="lbl_due_date">Due date</label><input type="date" name="due_date" id="eDue"></div>
+        <div class="form-group"><label data-i18n="lbl_status">Status</label>
           <select name="status" id="eStatus">
-            <option value="Pending">Pending</option>
-            <option value="Paid">Paid</option>
-            <option value="Overdue">Overdue</option>
+            <option value="Pending" data-i18n="status_active">Pending</option>
+            <option value="Paid" data-i18n="stat_paid">Paid</option>
+            <option value="Overdue" data-i18n="stat_overdue">Overdue</option>
           </select>
         </div>
         <hr class="section-sep">
-        <div class="section-label">Payment details</div>
-        <div class="form-group"><label>Payment method</label>
+        <div class="section-label" data-i18n="section_payment_details">Payment details</div>
+        <div class="form-group"><label data-i18n="lbl_payment_method">Payment method</label>
           <select name="payment_method" id="eMethod">
             <option value="">Select...</option>
             <option>ACH / Bank transfer</option>
@@ -310,13 +316,13 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
             <option>Cash</option>
           </select>
         </div>
-        <div class="form-group"><label>Bank / Card name</label><input type="text" name="bank_name" id="eBank" placeholder="e.g. Chase, Visa *4321"></div>
-        <div class="form-group full"><label>Reference / Check number</label><input type="text" name="reference_num" id="eRef"></div>
-        <div class="form-group full"><label>Note</label><textarea name="note" id="eNote" rows="2"></textarea></div>
+        <div class="form-group"><label data-i18n="lbl_bank_name">Bank / Card name</label><input type="text" name="bank_name" id="eBank" placeholder="e.g. Chase, Visa *4321"></div>
+        <div class="form-group full"><label data-i18n="lbl_reference">Reference / Check number</label><input type="text" name="reference_num" id="eRef"></div>
+        <div class="form-group full"><label data-i18n="lbl_notes">Note</label><textarea name="note" id="eNote" rows="2"></textarea></div>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn-cancel" onclick="closeModal('editModal')">Cancel</button>
-        <button type="submit" class="btn-save">Save changes</button>
+        <button type="button" class="btn-cancel" onclick="closeModal('editModal')" data-i18n="btn_cancel">Cancel</button>
+        <button type="submit" class="btn-save" data-i18n="btn_save_changes">Save changes</button>
       </div>
     </form>
   </div>
@@ -325,12 +331,12 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
 <!-- Mark paid Modal -->
 <div class="modal-overlay" id="paidModal">
   <div class="modal" style="width:400px">
-    <div class="modal-title">✓ Mark as paid <button class="modal-close" onclick="closeModal('paidModal')">✕</button></div>
+    <div class="modal-title">✓ <span data-i18n="modal_mark_paid">Mark as paid</span> <button class="modal-close" onclick="closeModal('paidModal')">✕</button></div>
     <form method="POST" id="paidForm">
       <p style="font-size:13px;color:var(--muted);margin-bottom:16px" id="paidLabel"></p>
       <div class="form-grid">
-        <div class="form-group"><label>Payment date *</label><input type="date" name="paid_date" id="paidDate"></div>
-        <div class="form-group"><label>Payment method</label>
+        <div class="form-group"><label data-i18n="lbl_payment_date">Payment date *</label><input type="date" name="paid_date" id="paidDate"></div>
+        <div class="form-group"><label data-i18n="lbl_payment_method">Payment method</label>
           <select name="payment_method" id="pMethod">
             <option value="">Select...</option>
             <option>ACH / Bank transfer</option>
@@ -342,12 +348,12 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
             <option>Cash</option>
           </select>
         </div>
-        <div class="form-group"><label>Bank / Card</label><input type="text" name="bank_name" id="pBank" placeholder="e.g. Chase, Visa *4321"></div>
-        <div class="form-group"><label>Reference / Check #</label><input type="text" name="reference_num" id="pRef" placeholder="e.g. CHK-10045"></div>
+        <div class="form-group"><label data-i18n="lbl_bank_card">Bank / Card</label><input type="text" name="bank_name" id="pBank" placeholder="e.g. Chase, Visa *4321"></div>
+        <div class="form-group"><label data-i18n="lbl_reference">Reference / Check #</label><input type="text" name="reference_num" id="pRef" placeholder="e.g. CHK-10045"></div>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn-cancel" onclick="closeModal('paidModal')">Cancel</button>
-        <button type="submit" class="btn-save" style="background:#27ae60">✓ Confirm paid</button>
+        <button type="button" class="btn-cancel" onclick="closeModal('paidModal')" data-i18n="btn_cancel">Cancel</button>
+        <button type="submit" class="btn-save" style="background:#27ae60"><span data-i18n="btn_confirm_paid">✓ Confirm paid</span></button>
       </div>
     </form>
   </div>
@@ -406,5 +412,6 @@ function clearFilters(){
 if(new URLSearchParams(location.search).get('new')==='1') openModal('addModal');
 filterTable();
 </script>
+<script src="/static/i18n.js"></script>
 </body>
 </html>
