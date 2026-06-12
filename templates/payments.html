@@ -190,12 +190,10 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
       <thead>
         <tr>
           <th data-i18n="th_company">Company</th>
-          <th data-i18n="th_carrier">Carrier</th>
+          <th data-i18n="th_finance_co">Finance Co.</th>
           <th data-i18n="th_amount">Amount</th>
           <th data-i18n="th_due_date">Due date</th>
           <th data-i18n="th_payment_method">Payment method</th>
-          <th data-i18n="th_bank_card">Bank / Card</th>
-          <th data-i18n="th_ref">Ref #</th>
           <th data-i18n="th_paid_date">Paid date</th>
           <th data-i18n="th_status">Status</th>
           <th data-i18n="th_actions">Actions</th>
@@ -212,8 +210,6 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
           <td><span class="amt" style="color:{% if p.status=='Paid' %}#2ecc71{% elif p.color=='red' %}#e74c3c{% else %}var(--gold-l){% endif %}">${{ "{:,.2f}".format(p.amount) }}</span></td>
           <td style="font-size:12px;color:#fff;white-space:nowrap">{{ p.due_fmt }}</td>
           <td>{% if p.get('payment_method') %}<span class="method-tag">{{ p.payment_method }}</span>{% else %}<span style="color:var(--muted)">—</span>{% endif %}</td>
-          <td style="font-size:11px;color:var(--muted)">{{ p.get('bank_name','') or '—' }}</td>
-          <td style="font-size:11px;color:var(--gold-l)">{{ p.get('reference_num','') or '—' }}</td>
           <td style="font-size:12px;color:#2ecc71;white-space:nowrap">{{ p.paid_fmt or '—' }}</td>
           <td><span class="bstat {% if p.status=='Overdue' %}bs-ov{% elif p.status=='Paid' %}bs-pa{% elif p.color=='yellow' %}bs-du{% else %}bs-pe{% endif %}">{{ p.status }}</span></td>
           <td>
@@ -222,7 +218,7 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
               <button class="btn-sm btn-paid" onclick="openMarkPaid({{ p.id }},'{{ p.company|e }}')"><span data-i18n="btn_paid">✓ Paid</span></button>
               {% endif %}
               <a href="/payments/invoice/{{ p.id }}" class="btn-sm btn-inv"><span data-i18n="btn_invoice">📄 Invoice</span></a>
-              <button class="btn-sm btn-edit" onclick="openEditModal({{ p.id }},'{{ p.company|e }}','{{ p.policy_number|e }}','{{ p.carrier|e }}',{{ p.amount }},'{{ p.due_date }}','{{ p.status }}','{{ p.get('payment_method','')|e }}','{{ p.get('bank_name','')|e }}','{{ p.get('reference_num','')|e }}','{{ p.note|e }}')"><span data-i18n="btn_edit">Edit</span></button>
+              <button class="btn-sm btn-edit" onclick="openEditModal({{ p.id }},'{{ p.company|e }}','{{ p.policy_number|e }}','{{ p.carrier|e }}',{{ p.amount }},'{{ p.due_date }}','{{ p.status }}','{{ p.get('payment_method','')|e }}','{{ p.note|e }}')"><span data-i18n="btn_edit">Edit</span></button>
               <a href="/payments/history/{{ p.id }}" class="btn-sm btn-hist"><span data-i18n="btn_history">History</span></a>
               <form method="POST" action="/payments/delete/{{ p.id }}" style="display:inline">
                 <button class="btn-sm btn-del" type="submit" onclick="return confirm('Delete?')"><span data-i18n="btn_del">Del</span></button>
@@ -231,7 +227,7 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="10"><div class="empty" data-i18n="no_payments_yet">No payment records yet. Click "+ Add payment" to get started.</div></td></tr>
+        <tr><td colspan="8"><div class="empty" data-i18n="no_payments_yet">No payment records yet. Click "+ Add payment" to get started.</div></td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -248,7 +244,7 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
         <div class="section-label" data-i18n="section_policy_info">Policy information</div>
         <div class="form-group full"><label data-i18n="lbl_company_name">Company name *</label><input type="text" name="company" placeholder="e.g. A and G Express Group LLC" required></div>
         <div class="form-group"><label data-i18n="lbl_policy_number">Policy number</label><input type="text" name="policy_number" placeholder="e.g. POL-2024-001"></div>
-        <div class="form-group"><label data-i18n="lbl_carrier">Carrier</label>
+        <div class="form-group"><label data-i18n="lbl_finance_co">Finance Company</label>
           <select name="carrier"><option value="">Select...</option>
           {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
         </div>
@@ -268,9 +264,8 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
             <option>Cash</option>
           </select>
         </div>
-        <div class="form-group"><label data-i18n="lbl_bank_name">Bank / Card name</label><input type="text" name="bank_name" placeholder="e.g. Chase, Wells Fargo, Visa *4321"></div>
-        <div class="form-group full"><label data-i18n="lbl_reference">Reference / Check number</label><input type="text" name="reference_num" placeholder="e.g. CHK-10045 or ACH-REF-882211"></div>
-        <div class="form-group full"><label data-i18n="lbl_notes">Note</label><textarea name="note" rows="2" placeholder="Optional note..."></textarea></div>
+
+        <div class="form-group full"><label data-i18n="lbl_notes">Note</label><textarea name="note" rows="1" placeholder="Optional note..." style="resize:vertical"></textarea></div>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" onclick="closeModal('addModal')" data-i18n="btn_cancel">Cancel</button>
@@ -289,7 +284,7 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
         <div class="section-label" data-i18n="section_policy_info">Policy information</div>
         <div class="form-group full"><label data-i18n="lbl_company_name">Company name *</label><input type="text" name="company" id="eCompany" required></div>
         <div class="form-group"><label data-i18n="lbl_policy_number">Policy number</label><input type="text" name="policy_number" id="ePolNum"></div>
-        <div class="form-group"><label data-i18n="lbl_carrier">Carrier</label>
+        <div class="form-group"><label data-i18n="lbl_finance_co">Finance Company</label>
           <select name="carrier" id="eCarrier"><option value="">Select...</option>
           {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
         </div>
@@ -316,9 +311,8 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
             <option>Cash</option>
           </select>
         </div>
-        <div class="form-group"><label data-i18n="lbl_bank_name">Bank / Card name</label><input type="text" name="bank_name" id="eBank" placeholder="e.g. Chase, Visa *4321"></div>
-        <div class="form-group full"><label data-i18n="lbl_reference">Reference / Check number</label><input type="text" name="reference_num" id="eRef"></div>
-        <div class="form-group full"><label data-i18n="lbl_notes">Note</label><textarea name="note" id="eNote" rows="2"></textarea></div>
+
+        <div class="form-group full"><label data-i18n="lbl_notes">Note</label><textarea name="note" id="eNote" rows="1" style="resize:vertical"></textarea></div>
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" onclick="closeModal('editModal')" data-i18n="btn_cancel">Cancel</button>
@@ -348,8 +342,7 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
             <option>Cash</option>
           </select>
         </div>
-        <div class="form-group"><label data-i18n="lbl_bank_card">Bank / Card</label><input type="text" name="bank_name" id="pBank" placeholder="e.g. Chase, Visa *4321"></div>
-        <div class="form-group"><label data-i18n="lbl_reference">Reference / Check #</label><input type="text" name="reference_num" id="pRef" placeholder="e.g. CHK-10045"></div>
+
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" onclick="closeModal('paidModal')" data-i18n="btn_cancel">Cancel</button>
@@ -367,7 +360,7 @@ document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click
 function toggleProfile(e){e.stopPropagation();document.getElementById('profileDd').classList.toggle('open')}
 document.addEventListener('click',()=>document.getElementById('profileDd').classList.remove('open'))
 
-function openEditModal(id,company,polnum,carrier,amount,due,status,method,bank,ref,note){
+function openEditModal(id,company,polnum,carrier,amount,due,status,method,note){
   document.getElementById('editForm').action='/payments/edit/'+id;
   document.getElementById('eCompany').value=company;
   document.getElementById('ePolNum').value=polnum;
@@ -376,8 +369,6 @@ function openEditModal(id,company,polnum,carrier,amount,due,status,method,bank,r
   document.getElementById('eDue').value=due;
   document.getElementById('eStatus').value=status;
   document.getElementById('eMethod').value=method;
-  document.getElementById('eBank').value=bank;
-  document.getElementById('eRef').value=ref;
   document.getElementById('eNote').value=note;
   openModal('editModal');
 }

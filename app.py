@@ -874,7 +874,7 @@ def payments():
         "paid": sum(1 for p in all_p if p["status"] == "Paid"),
         "total_outstanding": sum(p["amount"] for p in all_p if p["status"] != "Paid"),
     }
-    carriers = ["Progressive","Nationwide","Travelers","Sentry","Canal","Great West","Berkley","Markel","State Auto","National Indemnity","Geico","TIP","Benchmark","Berkshire","Cover Whale","Technologies Insurance"]
+    carriers = ["First Insurance Funding","Direct Bill","Capital Premium Financing","AFCO","IPFS"]
     return render_template("payments.html", payments=all_p, stats=stats, carriers=carriers, today=today.strftime("%Y-%m-%d"))
 
 @app.route("/payments/add", methods=["POST"])
