@@ -24,8 +24,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "yusolve-dev-secret-2025")
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "948077622554-j82mqt0t7abqngiv82jhoup35t9nc1hq.apps.googleusercontent.com")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "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")
 oauth = OAuth(app)
 google = oauth.register(
     name="google", client_id=GOOGLE_CLIENT_ID, client_secret=GOOGLE_CLIENT_SECRET,
@@ -97,29 +97,41 @@ def login_google():
 def google_callback():
     try:
         token    = google.authorize_access_token()
+        print("TOKEN:", token)
         userinfo = token.get("userinfo") or google.userinfo()
-    except:
-        flash("Google login failed.", "error"); return redirect(url_for("login"))
-    google_id  = str(userinfo.get("sub",""))
-    email      = userinfo.get("email","").lower()
-    parts      = userinfo.get("name","").split(" ",1)
-    first_name = parts[0]; last_name = parts[1] if len(parts)>1 else ""
-    data = get_user_by_google_id(google_id)
-    if not data:
-        data = get_user_by_email(email)
-        if data and not data.get("google_id"):
-            import sqlite3
-            from auth import DB_PATH
-            con = sqlite3.connect(DB_PATH)
-            con.execute("UPDATE users SET google_id=?,auth_provider='google' WHERE id=?", (google_id, data["id"]))
-            con.commit(); con.close()
-            data = get_user_by_id(data["id"])
-        elif not data:
-            data = create_user(first_name, last_name, email, auth_provider="google", google_id=google_id)
-    if not data:
-        flash("Could not create account.", "error"); return redirect(url_for("login"))
-    login_user(User(data), remember=True)
-    return redirect(url_for("index"))
+        print("USERINFO:", userinfo)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        flash(f"Google login failed: {e}", "error"); return redirect(url_for("login"))
+
+    try:
+        google_id  = str(userinfo.get("sub",""))
+        email      = userinfo.get("email","").lower()
+        parts      = userinfo.get("name","").split(" ",1)
+        first_name = parts[0]; last_name = parts[1] if len(parts)>1 else ""
+        print(f"google_id={google_id} email={email} name={first_name} {last_name}")
+
+        data = get_user_by_google_id(google_id)
+        if not data:
+            data = get_user_by_email(email)
+            if data and not data.get("google_id"):
+                import sqlite3
+                from auth import DB_PATH
+                con = sqlite3.connect(DB_PATH)
+                con.execute("UPDATE users SET google_id=?,auth_provider='google' WHERE id=?", (google_id, data["id"]))
+                con.commit(); con.close()
+                data = get_user_by_id(data["id"])
+            elif not data:
+                data = create_user(first_name, last_name, email, auth_provider="google", google_id=google_id)
+
+        print("USER DATA:", data)
+        if not data:
+            flash("Could not create account.", "error"); return redirect(url_for("login"))
+        login_user(User(data), remember=True)
+        return redirect(url_for("index"))
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        flash(f"Google login error: {e}", "error"); return redirect(url_for("login"))
 
 # ── Profile ───────────────────────────────────────────────────────────────────
 
