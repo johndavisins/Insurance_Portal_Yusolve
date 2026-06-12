@@ -1,7 +1,7 @@
 import os, sqlite3
 from datetime import datetime
 from functools import wraps
-from flask import redirect, url_for, flash
+from flask import flash
 from flask_login import LoginManager, UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -139,10 +139,7 @@ def load_user(uid):
     data = get_user_by_id(int(uid))
     return User(data) if data else None
 
-@login_manager.unauthorized_handler
-def unauthorized():
-    flash("Please sign in to access this page.", "error")
-    return redirect(url_for("login"))
+# login_manager.login_view handles redirects for @login_required routes
 
 def admin_required(f):
     @wraps(f)
@@ -203,9 +200,12 @@ def init_renewals_db():
     """)
     con.commit(); con.close()
 
-def get_all_renewals():
+def get_all_renewals(user_id=None, is_admin=False):
     con = sqlite3.connect(DB_PATH)
-    rows = con.execute("SELECT * FROM renewals ORDER BY renewal_date ASC").fetchall()
+    if is_admin or user_id is None:
+        rows = con.execute("SELECT * FROM renewals ORDER BY renewal_date ASC").fetchall()
+    else:
+        rows = con.execute("SELECT * FROM renewals WHERE created_by=? ORDER BY renewal_date ASC", (user_id,)).fetchall()
     con.close()
     keys = ["id","company","policy_type","carrier","renewal_date","premium","policy_number","agent_name","notes","status","auto_renew","created_by","created_at","updated_at"]
     return [dict(zip(keys, r)) for r in rows]
@@ -279,3 +279,88 @@ def get_all_renewal_history():
     con.close()
     keys = ["id","renewal_id","company","policy_type","carrier","renewal_date","premium","policy_number","agent_name","notes","action","done_by","done_at"]
     return [dict(zip(keys, r)) for r in rows]
+
+
+def _pay_keys(): return ["id","company","policy_number","carrier","amount","due_date","paid_date","status","payment_method","bank_name","reference_num","note","created_by","created_at"]
+
+def get_all_payments(user_id=None, is_admin=False):
+    import sqlite3 as _sq
+    from auth import DB_PATH as _DB
+    con = _sq.connect(_DB)
+    if is_admin or user_id is None:
+        rows = con.execute("SELECT * FROM payments ORDER BY due_date ASC").fetchall()
+    else:
+        rows = con.execute("SELECT * FROM payments WHERE created_by=? ORDER BY due_date ASC", (user_id,)).fetchall()
+    con.close()
+    return [dict(zip(_pay_keys(), r)) for r in rows]
+
+def get_payment_by_id(pid):
+    import sqlite3 as _sq
+    from auth import DB_PATH as _DB
+    con = _sq.connect(_DB)
+    row = con.execute("SELECT * FROM payments WHERE id=?", (pid,)).fetchone()
+    con.close()
+    return dict(zip(_pay_keys(), row)) if row else None
+
+def create_payment(company, policy_number, carrier, amount, due_date, note, created_by, payment_method='', bank_name='', reference_num=''):
+    import sqlite3 as _sq
+    from auth import DB_PATH as _DB
+    from datetime import datetime as _dt
+    now = _dt.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    con = _sq.connect(_DB)
+    con.execute(
+        "INSERT INTO payments (company,policy_number,carrier,amount,due_date,status,payment_method,bank_name,reference_num,note,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        (company, policy_number, carrier, float(amount or 0), due_date, "Pending", payment_method, bank_name, reference_num, note, created_by, now)
+    )
+    con.commit(); con.close()
+
+def mark_payment_paid(pid, paid_date, done_by=None, done_by_name=''):
+    import sqlite3 as _sq
+    from auth import DB_PATH as _DB
+    from datetime import datetime as _dt
+    now = _dt.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    con = _sq.connect(_DB)
+    row = con.execute("SELECT status FROM payments WHERE id=?", (pid,)).fetchone()
+    old_status = row[0] if row else ''
+    con.execute("UPDATE payments SET status='Paid',paid_date=? WHERE id=?", (paid_date, pid))
+    con.execute(
+        "INSERT INTO payment_history (payment_id,action,old_status,new_status,done_by,done_by_name,done_at) VALUES (?,?,?,?,?,?,?)",
+        (pid, 'marked_paid', old_status, 'Paid', done_by, done_by_name, now)
+    )
+    con.commit(); con.close()
+
+def get_payment_history(pid):
+    import sqlite3 as _sq
+    from auth import DB_PATH as _DB
+    con = _sq.connect(_DB)
+    rows = con.execute(
+        "SELECT * FROM payment_history WHERE payment_id=? ORDER BY done_at DESC", (pid,)
+    ).fetchall()
+    con.close()
+    keys = ["id","payment_id","action","old_status","new_status","note","done_by","done_by_name","done_at"]
+    return [dict(zip(keys, r)) for r in rows]
+
+def update_payment(pid, company, policy_number, carrier, amount, due_date, status, note, payment_method='', bank_name='', reference_num='', done_by=None, done_by_name=''):
+    import sqlite3 as _sq
+    from auth import DB_PATH as _DB
+    from datetime import datetime as _dt
+    now = _dt.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    con = _sq.connect(_DB)
+    row = con.execute("SELECT status FROM payments WHERE id=?", (pid,)).fetchone()
+    old_status = row[0] if row else ''
+    con.execute(
+        "UPDATE payments SET company=?,policy_number=?,carrier=?,amount=?,due_date=?,status=?,payment_method=?,bank_name=?,reference_num=?,note=? WHERE id=?",
+        (company, policy_number, carrier, float(amount or 0), due_date, status, payment_method, bank_name, reference_num, note, pid)
+    )
+    if old_status != status:
+        con.execute(
+            "INSERT INTO payment_history (payment_id,action,old_status,new_status,note,done_by,done_by_name,done_at) VALUES (?,?,?,?,?,?,?,?)",
+            (pid, 'status_changed', old_status, status, f'Updated by {done_by_name}', done_by, done_by_name, now)
+        )
+    con.commit(); con.close()
+
+def delete_payment(pid):
+    import sqlite3 as _sq
+    from auth import DB_PATH as _DB
+    con = _sq.connect(_DB)
+    con.execute("DELETE FROM payments WHERE id=?", (pid,)); con.commit(); con.close()

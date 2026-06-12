@@ -15,7 +15,9 @@ from auth import (init_db, login_manager, admin_required, get_user_by_email,
                   get_user_downloads, delete_download_history,
                   init_renewals_db, get_all_renewals, get_renewal_by_id,
                   create_renewal, update_renewal, delete_renewal, renew_renewal,
-                  get_renewal_history, get_all_renewal_history)
+                  get_renewal_history, get_all_renewal_history,
+                  get_all_payments, get_payment_by_id, create_payment,
+                  mark_payment_paid, get_payment_history, update_payment, delete_payment)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "yusolve-dev-secret-2025")
@@ -553,13 +555,13 @@ def renewals_delete(rid):
 
 
 
-if __name__ == "__main__":
-    print("=" * 55)
-    print("  Yusolve Insurance Operations Portal")
-    print("  Dashboard: http://localhost:5000/dashboard")
-    print("=" * 55)
-    app.run(debug=False, port=5000)
+@app.route("/guest")
+def guest():
+    return render_template("guest.html")
 
+@app.route("/guide")
+def guide():
+    return render_template("guide.html")
 
 # ── Renewals (full) ───────────────────────────────────────────────────────────
 
@@ -1016,11 +1018,9 @@ def payment_history_view(pid):
         p["paid_fmt"] = ""
     return render_template("payment_history.html", payment=p, history=history)
 
-
-@app.route("/guest")
-def guest():
-    return render_template("guest.html")
-
-@app.route("/guide")
-def guide():
-    return render_template("guide.html")
+if __name__ == "__main__":
+    print("=" * 55)
+    print("  Yusolve Insurance Operations Portal")
+    print("  Dashboard: http://localhost:5000/dashboard")
+    print("=" * 55)
+    app.run(debug=False, port=5000)
