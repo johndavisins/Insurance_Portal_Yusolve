@@ -25,8 +25,8 @@ app.secret_key = os.environ.get("SECRET_KEY", "yusolve-dev-secret-2025")
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "948077622554-j82mqt0t7abqngiv82jhoup35t9nc1hq.apps.googleusercontent.com")
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "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")
+GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 oauth = OAuth(app)
 google = oauth.register(
     name="google", client_id=GOOGLE_CLIENT_ID, client_secret=GOOGLE_CLIENT_SECRET,
