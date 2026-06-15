@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.db
+yusolve.db
+start.bat
+.env
+uploads/lessee_signatures/*
+uploads/lessor_signatures/*
+!uploads/lessee_signatures/.gitkeep
+!uploads/lessor_signatures/.gitkeep
