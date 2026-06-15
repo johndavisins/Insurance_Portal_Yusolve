@@ -1,7 +1,7 @@
 import os, sqlite3
 from datetime import datetime
 from functools import wraps
-from flask import flash
+from flask import flash, redirect, url_for
 from flask_login import LoginManager, UserMixin, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 

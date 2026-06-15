@@ -204,7 +204,6 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
         <tr data-status="{{ p.status }}" data-method="{{ p.get('payment_method','') }}" data-search="{{ p.company|lower }} {{ p.policy_number|lower }} {{ p.get('reference_num','')|lower }}">
           <td>
             <div class="company">{{ p.company }}</div>
-            {% if p.policy_number %}<div class="pol">Policy #{{ p.policy_number }}</div>{% endif %}
           </td>
           <td style="color:var(--muted);font-size:11px">{{ p.carrier or '—' }}</td>
           <td><span class="amt" style="color:{% if p.status=='Paid' %}#2ecc71{% elif p.color=='red' %}#e74c3c{% else %}var(--gold-l){% endif %}">${{ "{:,.2f}".format(p.amount) }}</span></td>
@@ -218,7 +217,7 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
               <button class="btn-sm btn-paid" onclick="openMarkPaid({{ p.id }},'{{ p.company|e }}')"><span data-i18n="btn_paid">✓ Paid</span></button>
               {% endif %}
               <a href="/payments/invoice/{{ p.id }}" class="btn-sm btn-inv"><span data-i18n="btn_invoice">📄 Invoice</span></a>
-              <button class="btn-sm btn-edit" onclick="openEditModal({{ p.id }},'{{ p.company|e }}','{{ p.policy_number|e }}','{{ p.carrier|e }}',{{ p.amount }},'{{ p.due_date }}','{{ p.status }}','{{ p.get('payment_method','')|e }}','{{ p.note|e }}')"><span data-i18n="btn_edit">Edit</span></button>
+              <button class="btn-sm btn-edit" onclick="openEditModal({{ p.id }},'{{ p.company|e }}','{{ p.carrier|e }}',{{ p.amount }},'{{ p.due_date }}','{{ p.status }}','{{ p.get('payment_method','')|e }}','{{ p.note|e }}')"><span data-i18n="btn_edit">Edit</span></button>
               <a href="/payments/history/{{ p.id }}" class="btn-sm btn-hist"><span data-i18n="btn_history">History</span></a>
               <form method="POST" action="/payments/delete/{{ p.id }}" style="display:inline">
                 <button class="btn-sm btn-del" type="submit" onclick="return confirm('Delete?')"><span data-i18n="btn_del">Del</span></button>
@@ -243,7 +242,6 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
       <div class="form-grid">
         <div class="section-label" data-i18n="section_policy_info">Policy information</div>
         <div class="form-group full"><label data-i18n="lbl_company_name">Company name *</label><input type="text" name="company" placeholder="e.g. A and G Express Group LLC" required></div>
-        <div class="form-group"><label data-i18n="lbl_policy_number">Policy number</label><input type="text" name="policy_number" placeholder="e.g. POL-2024-001"></div>
         <div class="form-group"><label data-i18n="lbl_finance_co">Finance Company</label>
           <select name="carrier"><option value="">Select...</option>
           {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
@@ -283,7 +281,6 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
       <div class="form-grid">
         <div class="section-label" data-i18n="section_policy_info">Policy information</div>
         <div class="form-group full"><label data-i18n="lbl_company_name">Company name *</label><input type="text" name="company" id="eCompany" required></div>
-        <div class="form-group"><label data-i18n="lbl_policy_number">Policy number</label><input type="text" name="policy_number" id="ePolNum"></div>
         <div class="form-group"><label data-i18n="lbl_finance_co">Finance Company</label>
           <select name="carrier" id="eCarrier"><option value="">Select...</option>
           {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
@@ -360,10 +357,9 @@ document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click
 function toggleProfile(e){e.stopPropagation();document.getElementById('profileDd').classList.toggle('open')}
 document.addEventListener('click',()=>document.getElementById('profileDd').classList.remove('open'))
 
-function openEditModal(id,company,polnum,carrier,amount,due,status,method,note){
+function openEditModal(id,company,carrier,amount,due,status,method,note){
   document.getElementById('editForm').action='/payments/edit/'+id;
   document.getElementById('eCompany').value=company;
-  document.getElementById('ePolNum').value=polnum;
   document.getElementById('eCarrier').value=carrier;
   document.getElementById('eAmount').value=amount;
   document.getElementById('eDue').value=due;
