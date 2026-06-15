@@ -7,3 +7,4 @@ python-dateutil
 Pillow
 numpy
 gunicorn
+requests
