@@ -8,7 +8,6 @@ from flask_login import login_user, logout_user, login_required, current_user
 import pypdf
 from reportlab.pdfgen import canvas as rl_canvas
 from reportlab.lib.pagesizes import LETTER
-from authlib.integrations.flask_client import OAuth
 from auth import (init_db, login_manager, admin_required, get_user_by_email,
                   get_user_by_google_id, get_all_users, create_user, update_user_role,
                   delete_user, verify_password, User, get_user_by_id,
@@ -18,21 +17,16 @@ from auth import (init_db, login_manager, admin_required, get_user_by_email,
                   create_renewal, update_renewal, delete_renewal, renew_renewal,
                   get_renewal_history, get_all_renewal_history,
                   get_all_payments, get_payment_by_id, create_payment,
-                  mark_payment_paid, get_payment_history, update_payment, delete_payment)
+                  mark_payment_paid, get_payment_history, update_payment, delete_payment,
+                  get_all_agents, create_agent, delete_agent,
+                  get_quotes_for_renewal, add_quote, delete_quote)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "yusolve-dev-secret-2025")
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID", "")
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
-oauth = OAuth(app)
-google = oauth.register(
-    name="google", client_id=GOOGLE_CLIENT_ID, client_secret=GOOGLE_CLIENT_SECRET,
-    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-    client_kwargs={"scope": "openid email profile"},
-)
+
 
 BLANK_PDF = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Exp_form_sample.pdf")
 init_db()
@@ -88,47 +82,7 @@ def logout():
     flash("You have been signed out.", "success")
     return redirect(url_for("login"))
 
-@app.route("/login/google")
-def login_google():
-    if not GOOGLE_CLIENT_ID:
-        flash("Google login not configured.", "error"); return redirect(url_for("login"))
-    return google.authorize_redirect(url_for("google_callback", _external=True))
 
-@app.route("/login/google/callback")
-def google_callback():
-    try:
-        token    = google.authorize_access_token()
-        userinfo = token.get("userinfo") or google.userinfo()
-    except Exception as e:
-        import traceback; traceback.print_exc()
-        flash(f"Google login failed: {e}", "error"); return redirect(url_for("login"))
-
-    try:
-        google_id  = str(userinfo.get("sub",""))
-        email      = userinfo.get("email","").lower()
-        parts      = userinfo.get("name","").split(" ",1)
-        first_name = parts[0]; last_name = parts[1] if len(parts)>1 else ""
-
-        data = get_user_by_google_id(google_id)
-        if not data:
-            data = get_user_by_email(email)
-            if data and not data.get("google_id"):
-                import sqlite3
-                from auth import DB_PATH
-                con = sqlite3.connect(DB_PATH)
-                con.execute("UPDATE users SET google_id=?,auth_provider='google' WHERE id=?", (google_id, data["id"]))
-                con.commit(); con.close()
-                data = get_user_by_id(data["id"])
-            elif not data:
-                data = create_user(first_name, last_name, email, auth_provider="google", google_id=google_id)
-
-        if not data:
-            flash("Could not create account.", "error"); return redirect(url_for("login"))
-        login_user(User(data), remember=True)
-        return redirect(url_for("index"))
-    except Exception as e:
-        import traceback; traceback.print_exc()
-        flash(f"Google login error: {e}", "error"); return redirect(url_for("login"))
 
 # ── Profile ───────────────────────────────────────────────────────────────────
 
@@ -1645,44 +1599,54 @@ def renewals():
         "Cover Whale",
         "Technologies Insurance",
     ]
-    return render_template("renewals.html", renewals=all_r, stats=stats, policy_types=policy_types, carriers=carriers)
+    return render_template("renewals.html", renewals=all_r, stats=stats, policy_types=policy_types, carriers=carriers, agents=get_all_agents())
 
 @app.route("/renewals/add", methods=["POST"])
 @login_required
 def renewals_add():
-    company       = request.form.get("company","").strip()
-    policy_type   = request.form.get("policy_type","").strip()
-    carrier       = request.form.get("carrier","").strip()
-    renewal_date  = request.form.get("renewal_date","").strip()
-    premium       = request.form.get("premium","").strip()
-    policy_number = request.form.get("policy_number","").strip()
-    agent_name    = request.form.get("agent_name","").strip()
-    notes         = request.form.get("notes","").strip()
-    auto_renew    = request.form.get("auto_renew") == "1"
+    company           = request.form.get("company","").strip()
+    policy_type       = request.form.get("policy_type","").strip()
+    carrier           = request.form.get("carrier","").strip()
+    renewal_date      = request.form.get("renewal_date","").strip()
+    premium           = request.form.get("premium","").strip()
+    notes             = request.form.get("notes","").strip()
+    auto_renew        = request.form.get("auto_renew") == "1"
+    mc_number         = request.form.get("mc_number","").strip()
+    dot_number        = request.form.get("dot_number","").strip()
+    owner             = request.form.get("owner","").strip()
+    current_insurance = request.form.get("current_insurance","").strip()
+    submitted_agents  = ",".join(request.form.getlist("submitted_agents"))
     if not all([company, policy_type, carrier, renewal_date]):
         flash("All required fields must be filled.", "error")
         return redirect(url_for("renewals"))
-    create_renewal(company, policy_type, carrier, renewal_date, premium, auto_renew, current_user.id, policy_number, agent_name, notes)
+    create_renewal(company, policy_type, carrier, renewal_date, premium, auto_renew, current_user.id,
+                    notes=notes, mc_number=mc_number, dot_number=dot_number, owner=owner,
+                    current_insurance=current_insurance, submitted_agents=submitted_agents)
     flash(f"Renewal added for {company}.", "success")
     return redirect(url_for("renewals"))
 
 @app.route("/renewals/edit/<int:rid>", methods=["POST"])
 @login_required
 def renewals_edit(rid):
-    company       = request.form.get("company","").strip()
-    policy_type   = request.form.get("policy_type","").strip()
-    carrier       = request.form.get("carrier","").strip()
-    renewal_date  = request.form.get("renewal_date","").strip()
-    premium       = request.form.get("premium","").strip()
-    policy_number = request.form.get("policy_number","").strip()
-    agent_name    = request.form.get("agent_name","").strip()
-    notes         = request.form.get("notes","").strip()
-    status        = request.form.get("status","Active").strip()
-    auto_renew    = request.form.get("auto_renew") == "1"
+    company           = request.form.get("company","").strip()
+    policy_type       = request.form.get("policy_type","").strip()
+    carrier           = request.form.get("carrier","").strip()
+    renewal_date      = request.form.get("renewal_date","").strip()
+    premium           = request.form.get("premium","").strip()
+    notes             = request.form.get("notes","").strip()
+    status            = request.form.get("status","Active").strip()
+    auto_renew        = request.form.get("auto_renew") == "1"
+    mc_number         = request.form.get("mc_number","").strip()
+    dot_number        = request.form.get("dot_number","").strip()
+    owner             = request.form.get("owner","").strip()
+    current_insurance = request.form.get("current_insurance","").strip()
+    submitted_agents  = ",".join(request.form.getlist("submitted_agents"))
     if not all([company, policy_type, carrier, renewal_date]):
         flash("All required fields must be filled.", "error")
         return redirect(url_for("renewals"))
-    update_renewal(rid, company, policy_type, carrier, renewal_date, premium, status, auto_renew, policy_number, agent_name, notes)
+    update_renewal(rid, company, policy_type, carrier, renewal_date, premium, status, auto_renew,
+                    notes=notes, mc_number=mc_number, dot_number=dot_number, owner=owner,
+                    current_insurance=current_insurance, submitted_agents=submitted_agents)
     flash("Renewal updated.", "success")
     return redirect(url_for("renewals"))
 
@@ -1769,18 +1733,31 @@ def renewal_email_template(rid):
     except:
         date_fmt = r["renewal_date"]
         days = "N/A"
-    subject = f"Policy Renewal Notice – {r['company']} – {date_fmt}"
-    body = f"""Dear {r['carrier']} Team,
+
+    agent_ids = [a for a in (r.get("submitted_agents") or "").split(",") if a]
+    all_agents = {str(a["id"]): a for a in get_all_agents()}
+    agent_lines = []
+    for aid in agent_ids:
+        a = all_agents.get(aid)
+        if a:
+            agent_lines.append(f"{a['name']} <{a['email']}>" if a['email'] else a['name'])
+    agents_str = ", ".join(agent_lines) if agent_lines else "N/A"
+
+    subject = f"Policy Renewal Notice - {r['company']} - {date_fmt}"
+    body = f"""Dear Team,
 
 We would like to initiate the renewal process for the following policy:
 
-Client:         {r['company']}
-Policy Type:    {r['policy_type']}
-Policy Number:  {r.get('policy_number') or 'N/A'}
-Current Expiry: {date_fmt}
-Days Remaining: {days}
-Annual Premium: {'$' + r['premium'] if r['premium'] else 'TBD'}
-Agent:          {r.get('agent_name') or 'N/A'}
+Client:             {r['company']}
+MC Number:          {r.get('mc_number') or 'N/A'}
+DOT Number:         {r.get('dot_number') or 'N/A'}
+Owner:              {r.get('owner') or 'N/A'}
+Policy Type:        {r['policy_type']}
+Current Insurance:  {r.get('current_insurance') or 'N/A'}
+Current Expiry:     {date_fmt}
+Days Remaining:     {days}
+Annual Premium:     {'$' + r['premium'] if r['premium'] else 'TBD'}
+Submitted To:       {agents_str}
 
 Please provide a renewal quote at your earliest convenience so we can ensure continuous coverage for our client.
 
@@ -2528,30 +2505,38 @@ def _la_create_overlay(data, lessor_sig_path, lessee_sig_path):
     put(152.2, 581.4, start_fmt, size=9, bold=True)
     put(269.5, 581.4, end_fmt,   size=9, bold=True)
 
-    # ── Bottom Lessor block ──
-    put(117.8, 204.7, data.get("lessor_name",""),   size=9, bold=True)
-    put(134.6, 193.4, data.get("lessor_addr1",""),  size=9)
-    put(135.1, 181.6, data.get("lessor_addr2",""),  size=9)
+    # ── Bottom blocks — centered text ──
+    # Lessor center ≈ 185pt, Lessee center ≈ 375pt
+    LESSOR_CX = 185.0
+    LESSEE_CX = 375.0
 
-    # ── Bottom Lessee block ──
-    put(313.4, 204.7, data.get("lessee_name",""),   size=9, bold=True)
-    put(322.8, 193.4, data.get("lessee_addr1",""),  size=9)
-    put(325.4, 181.6, data.get("lessee_addr2",""),  size=9)
+    def cput(cx, y, text, size=9, bold=False):
+        """Draw centered text at center-x=cx, y=rl_y."""
+        font = "Helvetica-Bold" if bold else "Helvetica"
+        c.setFont(font, size)
+        c.setFillColorRGB(0, 0, 0)
+        c.drawCentredString(cx, y, str(text))
+
+    # Lessor block (left, centered at 185pt)
+    cput(LESSOR_CX, 197.0, data.get("lessor_name",""),  size=9, bold=True)
+    cput(LESSOR_CX, 186.0, data.get("lessor_addr1",""), size=9)
+    cput(LESSOR_CX, 175.0, data.get("lessor_addr2",""), size=9)
+
+    # Lessee block (right, centered at 375pt)
+    cput(LESSEE_CX, 197.0, data.get("lessee_name",""),  size=9, bold=True)
+    cput(LESSEE_CX, 186.0, data.get("lessee_addr1",""), size=9)
+    cput(LESSEE_CX, 175.0, data.get("lessee_addr2",""), size=9)
 
     # ── Signatures ──
     # LEFT (Lessor): x=117.8-253.2pt, ReportLab y_top=207.8
     # RIGHT (Lessee): x=313.4-435.8pt, ReportLab y_top=208.6
-    LESSOR_SIG_X  = 117.8
-    LESSOR_SIG_Y  = 207.8   # top of signature area
-    LESSOR_SIG_W  = 135.4
-    LESSOR_SIG_H  = 79.7
+    # Signatures — centered under Lessor/Lessee labels
+    # Sig area: rl_y top ~208, bottom ~128 (height ~80pt), centered at 185 and 375
+    SIG_W = 110
+    SIG_H = 55
 
-    LESSEE_SIG_X  = 313.4
-    LESSEE_SIG_Y  = 208.6
-    LESSEE_SIG_W  = 122.4
-    LESSEE_SIG_H  = 84.2
-
-    def draw_sig(sig_path, x, y_top, w, h):
+    def draw_sig(sig_path, cx, y_top):
+        """Draw signature centered at cx, top at y_top."""
         if not sig_path or not os.path.exists(sig_path):
             return
         try:
@@ -2560,14 +2545,14 @@ def _la_create_overlay(data, lessor_sig_path, lessee_sig_path):
             bbox = img.getbbox()
             if bbox:
                 img = img.crop(bbox)
-            # y_top in reportlab = bottom of image + height
-            c.drawImage(ImageReader(img), x, y_top - h, width=w, height=h,
+            x = cx - SIG_W / 2
+            c.drawImage(ImageReader(img), x, y_top - SIG_H, width=SIG_W, height=SIG_H,
                         mask='auto', preserveAspectRatio=True)
         except Exception as e:
             print(f"Sig error: {e}")
 
-    draw_sig(lessor_sig_path, LESSOR_SIG_X, LESSOR_SIG_Y, LESSOR_SIG_W, LESSOR_SIG_H)
-    draw_sig(lessee_sig_path, LESSEE_SIG_X, LESSEE_SIG_Y, LESSEE_SIG_W, LESSEE_SIG_H)
+    draw_sig(lessor_sig_path, LESSOR_CX, 178.0)
+    draw_sig(lessee_sig_path, LESSEE_CX, 178.0)
 
     c.save()
     packet.seek(0)
@@ -2617,9 +2602,70 @@ def lease_agreement_generate():
 
 
 
+# ── Admin: Manage Agents ──────────────────────────────────────────────────────
+
+@app.route("/admin/agents")
+@login_required
+@admin_required
+def admin_agents():
+    agents = get_all_agents()
+    return render_template("admin_agents.html", agents=agents)
+
+@app.route("/admin/agents/add", methods=["POST"])
+@login_required
+@admin_required
+def admin_agents_add():
+    name = request.form.get("name","").strip()
+    email = request.form.get("email","").strip()
+    if not name:
+        flash("Agent name is required.", "error")
+        return redirect(url_for("admin_agents"))
+    create_agent(name, email)
+    flash(f"Agent '{name}' added.", "success")
+    return redirect(url_for("admin_agents"))
+
+@app.route("/admin/agents/delete/<int:aid>", methods=["POST"])
+@login_required
+@admin_required
+def admin_agents_delete(aid):
+    delete_agent(aid)
+    flash("Agent removed.", "success")
+    return redirect(url_for("admin_agents"))
+
+
+# ── Renewal Quotes (market + price, filled in later) ─────────────────────────
+
+@app.route("/renewals/quotes/<int:rid>")
+@login_required
+def renewal_quotes_view(rid):
+    r = get_renewal_by_id(rid)
+    if not r:
+        return jsonify({"error": "Not found"}), 404
+    quotes = get_quotes_for_renewal(rid)
+    return jsonify({"quotes": quotes, "company": r["company"]})
+
+@app.route("/renewals/quotes/<int:rid>/add", methods=["POST"])
+@login_required
+def renewal_quotes_add(rid):
+    market = request.form.get("market","").strip()
+    price  = request.form.get("price","").strip()
+    if not market:
+        return jsonify({"error": "Market is required"}), 400
+    qid = add_quote(rid, market, price)
+    return jsonify({"success": True, "id": qid, "market": market, "price": price})
+
+@app.route("/renewals/quotes/delete/<int:qid>", methods=["POST"])
+@login_required
+def renewal_quotes_delete(qid):
+    delete_quote(qid)
+    return jsonify({"success": True})
+
+
+
 if __name__ == "__main__":
     print("=" * 55)
     print("  Yusolve Insurance Operations Portal")
     print("  Dashboard: http://localhost:5000/dashboard")
     print("=" * 55)
-    app.run(debug=False, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host="0.0.0.0", port=port)

@@ -179,6 +179,43 @@ def init_renewals_db():
     try:
         con.execute("ALTER TABLE renewals ADD COLUMN notes TEXT NOT NULL DEFAULT ''")
     except: pass
+    try:
+        con.execute("ALTER TABLE renewals ADD COLUMN mc_number TEXT NOT NULL DEFAULT ''")
+    except: pass
+    try:
+        con.execute("ALTER TABLE renewals ADD COLUMN dot_number TEXT NOT NULL DEFAULT ''")
+    except: pass
+    try:
+        con.execute("ALTER TABLE renewals ADD COLUMN owner TEXT NOT NULL DEFAULT ''")
+    except: pass
+    try:
+        con.execute("ALTER TABLE renewals ADD COLUMN current_insurance TEXT NOT NULL DEFAULT ''")
+    except: pass
+    try:
+        con.execute("ALTER TABLE renewals ADD COLUMN submitted_agents TEXT NOT NULL DEFAULT ''")
+    except: pass
+
+    # Agents directory (admin-managed)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS agents (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            name       TEXT NOT NULL,
+            email      TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL
+        )
+    """)
+
+    # Quotes per renewal (market + price), filled in later via "Quotes" action
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS renewal_quotes (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            renewal_id  INTEGER NOT NULL,
+            market      TEXT NOT NULL,
+            price       TEXT NOT NULL DEFAULT '',
+            created_at  TEXT NOT NULL,
+            FOREIGN KEY (renewal_id) REFERENCES renewals(id) ON DELETE CASCADE
+        )
+    """)
     # Renewal history table
     con.execute("""
         CREATE TABLE IF NOT EXISTS renewal_history (
@@ -200,6 +237,8 @@ def init_renewals_db():
     """)
     con.commit(); con.close()
 
+RENEWAL_KEYS = ["id","company","policy_type","carrier","renewal_date","premium","policy_number","agent_name","notes","status","auto_renew","created_by","created_at","updated_at","mc_number","dot_number","owner","current_insurance","submitted_agents"]
+
 def get_all_renewals(user_id=None, is_admin=False):
     con = sqlite3.connect(DB_PATH)
     if is_admin or user_id is None:
@@ -207,34 +246,81 @@ def get_all_renewals(user_id=None, is_admin=False):
     else:
         rows = con.execute("SELECT * FROM renewals WHERE created_by=? ORDER BY renewal_date ASC", (user_id,)).fetchall()
     con.close()
-    keys = ["id","company","policy_type","carrier","renewal_date","premium","policy_number","agent_name","notes","status","auto_renew","created_by","created_at","updated_at"]
-    return [dict(zip(keys, r)) for r in rows]
+    return [dict(zip(RENEWAL_KEYS, r)) for r in rows]
 
 def get_renewal_by_id(rid):
     con = sqlite3.connect(DB_PATH)
     row = con.execute("SELECT * FROM renewals WHERE id=?", (rid,)).fetchone()
     con.close()
     if not row: return None
-    keys = ["id","company","policy_type","carrier","renewal_date","premium","policy_number","agent_name","notes","status","auto_renew","created_by","created_at","updated_at"]
-    return dict(zip(keys, row))
+    return dict(zip(RENEWAL_KEYS, row))
 
-def create_renewal(company, policy_type, carrier, renewal_date, premium, auto_renew, created_by, policy_number='', agent_name='', notes=''):
+def create_renewal(company, policy_type, carrier, renewal_date, premium, auto_renew, created_by,
+                    agent_name='', notes='', mc_number='', dot_number='', owner='',
+                    current_insurance='', submitted_agents=''):
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     con = sqlite3.connect(DB_PATH)
     cur = con.execute(
-        "INSERT INTO renewals (company,policy_type,carrier,renewal_date,premium,policy_number,agent_name,notes,status,auto_renew,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (company, policy_type, carrier, renewal_date, premium, policy_number, agent_name, notes, 'Active', 1 if auto_renew else 0, created_by, now, now)
+        """INSERT INTO renewals
+           (company,policy_type,carrier,renewal_date,premium,policy_number,agent_name,notes,status,auto_renew,
+            created_by,created_at,updated_at,mc_number,dot_number,owner,current_insurance,submitted_agents)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (company, policy_type, carrier, renewal_date, premium, '', agent_name, notes, 'Active',
+         1 if auto_renew else 0, created_by, now, now, mc_number, dot_number, owner,
+         current_insurance, submitted_agents)
     )
     rid = cur.lastrowid; con.commit(); con.close(); return rid
 
-def update_renewal(rid, company, policy_type, carrier, renewal_date, premium, status, auto_renew, policy_number='', agent_name='', notes=''):
+def update_renewal(rid, company, policy_type, carrier, renewal_date, premium, status, auto_renew,
+                    agent_name='', notes='', mc_number='', dot_number='', owner='',
+                    current_insurance='', submitted_agents=''):
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     con = sqlite3.connect(DB_PATH)
     con.execute(
-        "UPDATE renewals SET company=?,policy_type=?,carrier=?,renewal_date=?,premium=?,policy_number=?,agent_name=?,notes=?,status=?,auto_renew=?,updated_at=? WHERE id=?",
-        (company, policy_type, carrier, renewal_date, premium, policy_number, agent_name, notes, status, 1 if auto_renew else 0, now, rid)
+        """UPDATE renewals SET company=?,policy_type=?,carrier=?,renewal_date=?,premium=?,agent_name=?,notes=?,
+           status=?,auto_renew=?,updated_at=?,mc_number=?,dot_number=?,owner=?,current_insurance=?,submitted_agents=?
+           WHERE id=?""",
+        (company, policy_type, carrier, renewal_date, premium, agent_name, notes, status,
+         1 if auto_renew else 0, now, mc_number, dot_number, owner, current_insurance, submitted_agents, rid)
     )
     con.commit(); con.close()
+
+# ── Agents directory ─────────────────────────────────────────────────────────
+
+def get_all_agents():
+    con = sqlite3.connect(DB_PATH)
+    rows = con.execute("SELECT * FROM agents ORDER BY name ASC").fetchall()
+    con.close()
+    return [dict(zip(["id","name","email","created_at"], r)) for r in rows]
+
+def create_agent(name, email=''):
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    con = sqlite3.connect(DB_PATH)
+    cur = con.execute("INSERT INTO agents (name,email,created_at) VALUES (?,?,?)", (name, email, now))
+    aid = cur.lastrowid; con.commit(); con.close(); return aid
+
+def delete_agent(aid):
+    con = sqlite3.connect(DB_PATH)
+    con.execute("DELETE FROM agents WHERE id=?", (aid,)); con.commit(); con.close()
+
+# ── Renewal quotes (market + price) ──────────────────────────────────────────
+
+def get_quotes_for_renewal(renewal_id):
+    con = sqlite3.connect(DB_PATH)
+    rows = con.execute("SELECT * FROM renewal_quotes WHERE renewal_id=? ORDER BY created_at ASC", (renewal_id,)).fetchall()
+    con.close()
+    return [dict(zip(["id","renewal_id","market","price","created_at"], r)) for r in rows]
+
+def add_quote(renewal_id, market, price=''):
+    now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    con = sqlite3.connect(DB_PATH)
+    cur = con.execute("INSERT INTO renewal_quotes (renewal_id,market,price,created_at) VALUES (?,?,?,?)",
+                       (renewal_id, market, price, now))
+    qid = cur.lastrowid; con.commit(); con.close(); return qid
+
+def delete_quote(qid):
+    con = sqlite3.connect(DB_PATH)
+    con.execute("DELETE FROM renewal_quotes WHERE id=?", (qid,)); con.commit(); con.close()
 
 def delete_renewal(rid):
     con = sqlite3.connect(DB_PATH)

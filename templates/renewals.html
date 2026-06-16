@@ -242,8 +242,8 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
           <th data-i18n="th_company">Company</th>
           <th data-i18n="th_policy_type">Policy type</th>
           <th data-i18n="th_carrier">Carrier</th>
-          <th data-i18n="th_policy_num">Policy #</th>
-          <th data-i18n="th_agent">Agent</th>
+          <th>MC / DOT</th>
+          <th>Agents</th>
           <th data-i18n="th_renewal_date">Renewal date</th>
           <th data-i18n="th_days_left">Days left</th>
           <th data-i18n="th_premium">Premium</th>
@@ -254,15 +254,23 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
       <tbody id="tableBody">
         {% for r in renewals %}
         <tr data-color="{{ r.color }}" data-type="{{ r.policy_type }}" data-carrier="{{ r.carrier }}"
-            data-search="{{ r.company|lower }} {{ r.carrier|lower }} {{ r.get('policy_number','')|lower }} {{ r.get('agent_name','')|lower }}">
+            data-search="{{ r.company|lower }} {{ r.carrier|lower }} {{ r.get('mc_number','')|lower }} {{ r.get('dot_number','')|lower }} {{ r.get('owner','')|lower }}">
           <td>
             <div class="company">{{ r.company }}</div>
-            {% if r.get('policy_number') %}<div class="policy-num">Policy #{{ r.policy_number }}</div>{% endif %}
+            {% if r.get('owner') %}<div class="policy-num">{{ r.owner }}</div>{% endif %}
           </td>
           <td style="color:var(--muted)">{{ r.policy_type }}</td>
           <td style="color:var(--muted)">{{ r.carrier }}</td>
-          <td style="color:var(--gold-l);font-size:11px">{{ r.get('policy_number','') or '—' }}</td>
-          <td style="color:var(--muted);font-size:11px">{{ r.get('agent_name','') or '—' }}</td>
+          <td style="color:var(--gold-l);font-size:11px">
+            {% if r.get('mc_number') %}MC {{ r.mc_number }}{% endif %}
+            {% if r.get('mc_number') and r.get('dot_number') %}<br>{% endif %}
+            {% if r.get('dot_number') %}DOT {{ r.dot_number }}{% endif %}
+            {% if not r.get('mc_number') and not r.get('dot_number') %}—{% endif %}
+          </td>
+          <td style="color:var(--muted);font-size:11px">
+            {% set agent_count = (r.get('submitted_agents','') or '').split(',')|reject('equalto','')|list|length %}
+            {% if agent_count > 0 %}{{ agent_count }} agent{{ 's' if agent_count != 1 }}{% else %}—{% endif %}
+          </td>
           <td style="color:#fff;font-size:12px">{{ r.date_fmt }}</td>
           <td><span class="bdays {{ r.color }}">{% if r.days < 0 %}Expired{% else %}{{ r.days }}d{% endif %}</span></td>
           <td style="color:var(--gold-l);font-weight:600">{% if r.premium %}${{ r.premium }}{% else %}—{% endif %}</td>
@@ -270,7 +278,8 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
           <td>
             <div class="actions">
               <button class="btn-sm btn-email" onclick="loadEmailTemplate({{ r.id }}, '{{ r.company|e }}')">📧 Email</button>
-              <button class="btn-sm btn-edit" onclick="openEditModal({{ r.id }},'{{ r.company|e }}','{{ r.policy_type|e }}','{{ r.carrier|e }}','{{ r.renewal_date }}','{{ r.premium|e }}','{{ r.get('policy_number','')|e }}','{{ r.get('agent_name','')|e }}','{{ r.status }}',{{ r.auto_renew }},'{{ r.get('notes','')|e }}')">Edit</button>
+              <button class="btn-sm btn-edit" onclick='openEditModal({{ r.id }},{{ {"company":r.company,"policy_type":r.policy_type,"carrier":r.carrier,"renewal_date":r.renewal_date,"premium":r.premium,"mc_number":r.get("mc_number",""),"dot_number":r.get("dot_number",""),"owner":r.get("owner",""),"current_insurance":r.get("current_insurance",""),"status":r.status,"auto_renew":r.auto_renew,"notes":r.get("notes",""),"submitted_agents":r.get("submitted_agents","")}|tojson }})'>Edit</button>
+              <button class="btn-sm" style="background:rgba(212,168,67,0.12);border:1px solid rgba(212,168,67,0.3);color:#f0c96e" onclick="openQuotesModal({{ r.id }}, '{{ r.company|e }}')">💰 Quotes</button>
               <a href="/renewals/history/{{ r.id }}" class="btn-sm" style="background:rgba(155,89,182,0.15);border:1px solid rgba(155,89,182,0.3);color:#9b59b6;text-decoration:none"><span data-i18n="btn_history">History</span></a>
               {% if r.auto_renew %}
               <form method="POST" action="/renewals/renew/{{ r.id }}" style="display:inline">
@@ -300,6 +309,9 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
     <form method="POST" action="/renewals/add">
       <div class="form-grid">
         <div class="form-group full"><label data-i18n="lbl_company_name">Company name *</label><input type="text" name="company" placeholder="e.g. A and G Express Group LLC" required></div>
+        <div class="form-group"><label>MC Number</label><input type="text" name="mc_number" placeholder="e.g. MC-123456"></div>
+        <div class="form-group"><label>DOT Number</label><input type="text" name="dot_number" placeholder="e.g. 1234567"></div>
+        <div class="form-group full"><label>Owner</label><input type="text" name="owner" placeholder="e.g. John Smith"></div>
         <div class="form-group"><label data-i18n="lbl_policy_type">Policy type *</label>
           <select name="policy_type" required><option value="">Select...</option>
           {% for pt in policy_types %}<option value="{{ pt }}">{{ pt }}</option>{% endfor %}</select>
@@ -308,10 +320,16 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
           <select name="carrier" required><option value="">Select...</option>
           {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
         </div>
-        <div class="form-group"><label data-i18n="lbl_policy_number">Policy number</label><input type="text" name="policy_number" placeholder="e.g. POL-2024-001234"></div>
-        <div class="form-group"><label data-i18n="lbl_agent_name">Agent name</label><input type="text" name="agent_name" placeholder="e.g. Mike Johnson"></div>
+        <div class="form-group full"><label>Current Insurance</label><input type="text" name="current_insurance" placeholder="e.g. Progressive (current carrier)"></div>
         <div class="form-group"><label data-i18n="lbl_renewal_date">Renewal date *</label><input type="date" name="renewal_date" required></div>
         <div class="form-group"><label data-i18n="lbl_premium">Annual premium ($)</label><input type="text" name="premium" placeholder="e.g. 12,500"></div>
+        <div class="form-group full">
+          <label>Submit To Agents</label>
+          <select name="submitted_agents" multiple style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:9px 12px;color:#fff;font-size:13px;font-family:Barlow,sans-serif;outline:none;width:100%;min-height:90px">
+            {% for ag in agents %}<option value="{{ ag.id }}">{{ ag.name }}</option>{% endfor %}
+          </select>
+          <span style="font-size:10px;color:var(--muted)">Hold Ctrl/Cmd to select multiple agents</span>
+        </div>
         <div class="form-group full"><label>Notes</label><textarea name="notes" rows="3" placeholder="Any notes about this policy..." style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:9px 12px;color:#fff;font-size:13px;font-family:Barlow,sans-serif;outline:none;width:100%;resize:vertical"></textarea></div>
         <div class="form-group full">
           <div class="toggle-row">
@@ -336,6 +354,9 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
     <form method="POST" id="editForm">
       <div class="form-grid">
         <div class="form-group full"><label data-i18n="lbl_company_name">Company name *</label><input type="text" name="company" id="eCompany" required></div>
+        <div class="form-group"><label>MC Number</label><input type="text" name="mc_number" id="eMc" placeholder="e.g. MC-123456"></div>
+        <div class="form-group"><label>DOT Number</label><input type="text" name="dot_number" id="eDot" placeholder="e.g. 1234567"></div>
+        <div class="form-group full"><label>Owner</label><input type="text" name="owner" id="eOwner" placeholder="e.g. John Smith"></div>
         <div class="form-group"><label data-i18n="lbl_policy_type">Policy type *</label>
           <select name="policy_type" id="ePolicyType" required>
           {% for pt in policy_types %}<option value="{{ pt }}">{{ pt }}</option>{% endfor %}</select>
@@ -344,8 +365,7 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
           <select name="carrier" id="eCarrier" required>
           {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}</select>
         </div>
-        <div class="form-group"><label data-i18n="lbl_policy_number">Policy number</label><input type="text" name="policy_number" id="ePolicyNum" placeholder="e.g. POL-2024-001234"></div>
-        <div class="form-group"><label data-i18n="lbl_agent_name">Agent name</label><input type="text" name="agent_name" id="eAgent" placeholder="e.g. Mike Johnson"></div>
+        <div class="form-group full"><label>Current Insurance</label><input type="text" name="current_insurance" id="eCurrentIns" placeholder="e.g. Progressive (current carrier)"></div>
         <div class="form-group"><label data-i18n="lbl_renewal_date">Renewal date *</label><input type="date" name="renewal_date" id="eDate" required></div>
         <div class="form-group"><label data-i18n="lbl_premium">Annual premium ($)</label><input type="text" name="premium" id="ePremium"></div>
         <div class="form-group"><label data-i18n="lbl_status">Status</label>
@@ -354,6 +374,13 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
             <option value="Expired" data-i18n="status_expired">Expired</option>
             <option value="Cancelled" data-i18n="status_cancelled">Cancelled</option>
           </select>
+        </div>
+        <div class="form-group full">
+          <label>Submit To Agents</label>
+          <select name="submitted_agents" id="eAgents" multiple style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:9px 12px;color:#fff;font-size:13px;font-family:Barlow,sans-serif;outline:none;width:100%;min-height:90px">
+            {% for ag in agents %}<option value="{{ ag.id }}">{{ ag.name }}</option>{% endfor %}
+          </select>
+          <span style="font-size:10px;color:var(--muted)">Hold Ctrl/Cmd to select multiple agents</span>
         </div>
         <div class="form-group full"><label>Notes</label><textarea name="notes" id="eNotes" rows="3" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:7px;padding:9px 12px;color:#fff;font-size:13px;font-family:Barlow,sans-serif;outline:none;width:100%;resize:vertical"></textarea></div>
         <div class="form-group full">
@@ -369,6 +396,32 @@ footer{position:relative;z-index:1;text-align:center;padding:18px;border-top:1px
         <button type="submit" class="btn-save" data-i18n="btn_save_changes">Save changes</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Quotes Modal -->
+<div class="modal-overlay" id="quotesModal">
+  <div class="modal">
+    <div class="modal-title">💰 Quotes <span id="quotesCompanyName" style="font-weight:400;color:var(--muted);font-size:14px;margin-left:8px"></span> <button class="modal-close" onclick="closeModal('quotesModal')">✕</button></div>
+    <div style="margin-bottom:16px">
+      <div id="quotesList"></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-end;padding-top:14px;border-top:1px solid var(--border)">
+      <div class="form-group" style="flex:1">
+        <label>Market</label>
+        <select id="quoteMarket"><option value="">Select...</option>
+          {% for c in carriers %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="form-group" style="flex:1">
+        <label>Price ($)</label>
+        <input type="text" id="quotePrice" placeholder="e.g. 18,500">
+      </div>
+      <button type="button" class="btn-save" onclick="addQuote()" style="margin-bottom:0">+ Add</button>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-cancel" onclick="closeModal('quotesModal')">Close</button>
+    </div>
   </div>
 </div>
 
@@ -398,22 +451,70 @@ function openAddModal(){ document.getElementById('addModal').classList.add('open
 function closeModal(id){ document.getElementById(id).classList.remove('open') }
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}))
 
-function openEditModal(id,company,ptype,carrier,date,premium,polnum,agent,status,autoRenew,notes){
+function openEditModal(id, r){
   document.getElementById('editForm').action='/renewals/edit/'+id;
-  document.getElementById('eCompany').value=company;
-  document.getElementById('ePolicyType').value=ptype;
-  document.getElementById('eCarrier').value=carrier;
-  document.getElementById('ePolicyNum').value=polnum;
-  document.getElementById('eAgent').value=agent;
-  document.getElementById('eDate').value=date;
-  document.getElementById('ePremium').value=premium;
-  document.getElementById('eStatus').value=status;
-  document.getElementById('eNotes').value=notes||'';
-  const ar=autoRenew==1||autoRenew==true;
+  document.getElementById('eCompany').value=r.company||'';
+  document.getElementById('ePolicyType').value=r.policy_type||'';
+  document.getElementById('eCarrier').value=r.carrier||'';
+  document.getElementById('eMc').value=r.mc_number||'';
+  document.getElementById('eDot').value=r.dot_number||'';
+  document.getElementById('eOwner').value=r.owner||'';
+  document.getElementById('eCurrentIns').value=r.current_insurance||'';
+  document.getElementById('eDate').value=r.renewal_date||'';
+  document.getElementById('ePremium').value=r.premium||'';
+  document.getElementById('eStatus').value=r.status||'Active';
+  document.getElementById('eNotes').value=r.notes||'';
+  const ar=r.auto_renew==1||r.auto_renew==true;
   document.getElementById('editAR').value=ar?'1':'0';
   const tog=document.getElementById('editToggle');
   ar?tog.classList.add('on'):tog.classList.remove('on');
+  // Multi-select agents
+  const agentIds = (r.submitted_agents||'').split(',').filter(x=>x);
+  const sel = document.getElementById('eAgents');
+  for (const opt of sel.options) { opt.selected = agentIds.includes(opt.value); }
   document.getElementById('editModal').classList.add('open');
+}
+
+// ── Quotes Modal ──────────────────────────────────────────────────────────
+let currentQuoteRid = null;
+
+function openQuotesModal(rid, company){
+  currentQuoteRid = rid;
+  document.getElementById('quotesCompanyName').textContent = company;
+  document.getElementById('quotesModal').classList.add('open');
+  loadQuotes(rid);
+}
+
+async function loadQuotes(rid){
+  const res = await fetch('/renewals/quotes/'+rid);
+  const data = await res.json();
+  const list = document.getElementById('quotesList');
+  if (!data.quotes || data.quotes.length === 0) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">No quotes added yet.</div>';
+    return;
+  }
+  list.innerHTML = data.quotes.map(q => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:7px;margin-bottom:6px">
+      <div><span style="font-weight:600;color:#fff">${q.market}</span>${q.price ? ' <span style="color:#f0c96e">— $'+q.price+'</span>' : ''}</div>
+      <button onclick="deleteQuote(${q.id})" style="background:rgba(192,57,43,0.15);border:1px solid rgba(192,57,43,0.3);color:#e74c3c;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer">✕</button>
+    </div>`).join('');
+}
+
+async function addQuote(){
+  const market = document.getElementById('quoteMarket').value;
+  const price = document.getElementById('quotePrice').value.trim();
+  if (!market) { alert('Select a market'); return; }
+  const fd = new FormData();
+  fd.append('market', market);
+  fd.append('price', price);
+  await fetch('/renewals/quotes/'+currentQuoteRid+'/add', {method:'POST', body:fd});
+  document.getElementById('quotePrice').value='';
+  loadQuotes(currentQuoteRid);
+}
+
+async function deleteQuote(qid){
+  await fetch('/renewals/quotes/delete/'+qid, {method:'POST'});
+  loadQuotes(currentQuoteRid);
 }
 
 function toggleAR(togId,inputId){

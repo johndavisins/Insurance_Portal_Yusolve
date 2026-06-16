@@ -1,9 +1,0 @@
-flask
-flask-login
-werkzeug
-pypdf
-reportlab
-python-dateutil
-Pillow
-numpy
-gunicorn
