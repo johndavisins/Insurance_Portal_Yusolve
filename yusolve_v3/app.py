@@ -1,9 +1,9 @@
 import os, random
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 from io import BytesIO
 from dateutil.relativedelta import relativedelta
-from flask import Flask, render_template, request, send_file, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, send_file, jsonify, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
 import pypdf
 from reportlab.pdfgen import canvas as rl_canvas
@@ -22,7 +22,37 @@ from auth import (init_db, login_manager, admin_required, get_user_by_email,
                   get_quotes_for_renewal, add_quote, delete_quote)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "yusolve-dev-secret-2025")
+
+# Secret key: persisted to disk so sessions survive restarts, never hardcoded
+_SECRET_KEY_FILE = os.path.join(BASE_DIR, ".secret_key")
+def _get_or_create_secret_key():
+    env_key = os.environ.get("SECRET_KEY")
+    if env_key:
+        return env_key
+    if os.path.exists(_SECRET_KEY_FILE):
+        with open(_SECRET_KEY_FILE, "r") as f:
+            key = f.read().strip()
+            if key:
+                return key
+    import secrets as _secrets
+    key = _secrets.token_hex(32)
+    try:
+        with open(_SECRET_KEY_FILE, "w") as f:
+            f.write(key)
+    except Exception:
+        pass
+    return key
+
+app.secret_key = _get_or_create_secret_key()
+
+# Session / cookie security
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("FLASK_ENV") == "production"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=14)
+app.config["REMEMBER_COOKIE_DURATION"] = timedelta(days=14)
+app.config["REMEMBER_COOKIE_HTTPONLY"] = True
+app.config["REMEMBER_COOKIE_SAMESITE"] = "Lax"
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
@@ -34,6 +64,39 @@ init_renewals_db()
 
 # ── Auth Routes ───────────────────────────────────────────────────────────────
 
+# In-memory brute-force protection: tracks failed attempts per email+IP.
+# Resets on successful login or after LOCKOUT_WINDOW expires.
+_login_attempts = {}  # key -> {"count": int, "first_attempt": datetime}
+LOCKOUT_THRESHOLD = 5
+LOCKOUT_WINDOW = timedelta(minutes=15)
+
+def _login_key(email, ip):
+    return f"{email}|{ip}"
+
+def _is_locked_out(email, ip):
+    key = _login_key(email, ip)
+    entry = _login_attempts.get(key)
+    if not entry:
+        return False, 0
+    if datetime.utcnow() - entry["first_attempt"] > LOCKOUT_WINDOW:
+        del _login_attempts[key]
+        return False, 0
+    if entry["count"] >= LOCKOUT_THRESHOLD:
+        remaining = LOCKOUT_WINDOW - (datetime.utcnow() - entry["first_attempt"])
+        return True, max(1, int(remaining.total_seconds() // 60) + 1)
+    return False, 0
+
+def _record_failed_attempt(email, ip):
+    key = _login_key(email, ip)
+    entry = _login_attempts.get(key)
+    if not entry or datetime.utcnow() - entry["first_attempt"] > LOCKOUT_WINDOW:
+        _login_attempts[key] = {"count": 1, "first_attempt": datetime.utcnow()}
+    else:
+        entry["count"] += 1
+
+def _clear_attempts(email, ip):
+    _login_attempts.pop(_login_key(email, ip), None)
+
 @app.route("/login", methods=["GET","POST"])
 def login():
     if current_user.is_authenticated:
@@ -41,11 +104,22 @@ def login():
     if request.method == "POST":
         email    = request.form.get("email","").strip().lower()
         password = request.form.get("password","")
+        ip       = request.remote_addr or "unknown"
+
+        locked, minutes_left = _is_locked_out(email, ip)
+        if locked:
+            flash(f"Too many failed attempts. Please try again in {minutes_left} minute(s).", "error")
+            return render_template("login.html")
+
         data = get_user_by_email(email)
         if not data or data["auth_provider"] != "email" or not verify_password(data["password_hash"], password):
+            _record_failed_attempt(email, ip)
             flash("Invalid email or password.", "error")
             return render_template("login.html")
+
+        _clear_attempts(email, ip)
         login_user(User(data), remember=True)
+        session.permanent = True
         return redirect(url_for("index"))
     return render_template("login.html")
 
@@ -2659,6 +2733,8 @@ def renewal_quotes_add(rid):
 def renewal_quotes_delete(qid):
     delete_quote(qid)
     return jsonify({"success": True})
+
+
 
 
 

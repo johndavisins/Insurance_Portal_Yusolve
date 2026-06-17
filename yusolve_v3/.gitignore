@@ -4,6 +4,7 @@ __pycache__/
 yusolve.db
 start.bat
 .env
+.secret_key
 uploads/lessee_signatures/*
 uploads/lessor_signatures/*
 !uploads/lessee_signatures/.gitkeep
